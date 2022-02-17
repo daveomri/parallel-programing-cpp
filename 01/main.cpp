@@ -12,7 +12,10 @@
 #include <iostream>
 #include <cstdlib>
 
+using namespace std;
+
 int main(int argc, char *argv[]) {
     // todo
+    cout << "Hello world!";
     return 0;
 }
