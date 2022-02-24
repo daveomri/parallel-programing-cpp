@@ -10,6 +10,7 @@
  */
 
 #include <iostream>
+#include <fstream>
 #include <cstdlib>
 #include <string>
 
@@ -23,7 +24,23 @@ using namespace std;
  * @param fileName File name with graph prescription
  */
 void loadGraph(string fileName) {
-    // todo
+    // load the file
+    string line;
+    ifstream graphFile ("graf_mbp/" + fileName);
+
+    if (!graphFile.is_open()) {
+        cout << "Unable to open graf_mbp/" + fileName + "\n";
+        return;
+    }
+
+    // load the first line
+    if (getline (graphFile, line) ) {
+        cout << line << "\n";
+    }
+    else cout << "Unable to read the first line.\n";
+
+    // read the rest of the file
+    
 }
 
 /**
