@@ -33,6 +33,22 @@ struct graphStruct
     }
 };
 
+/**
+ * @brief Function recursively search all available nodes and sotres
+ *        them to given visNodes
+ * 
+ * @param graph representation of searched graph
+ * @param visNodes visited nodes
+ * @param curNode current node
+ */
+void srchdfs(graphStruct* graph, int* visNodes, int curNode) {
+    visNodes[curNode] = 1;
+    for (int i = 0; i < graph->gNum; i++) {
+        if ( visNodes[i] == 0 && graph->matrix[curNode][i] != 0) {
+            srchdfs(graph, visNodes, i);
+        }
+    }
+}
 
 /**
  * @brief Function tests the Connectivity of given graph
@@ -40,8 +56,31 @@ struct graphStruct
  * @return true if Connectivity is satisfied
  * @return false otherwise
  */
-bool testConnectivity() {
-    return false;
+bool isConnected(graphStruct* graph) {
+    // create graph unvisited nodes
+    int* visNodes = new int[graph->gNum];
+    
+    // sets zeros to all nodes
+    for (int i = 0; i < graph->gNum; i++) {
+        visNodes[i] = 0;
+    } 
+
+    // search graph - start with 0
+    srchdfs(graph, visNodes, 0);
+
+    // test the visited nodes
+    for (int i = 0; i < graph->gNum; i++) {
+        // if even one node hasn't been visited  return false
+        if (visNodes[i] == 0) {
+            delete [] visNodes;
+            return false;
+        }
+    }
+
+    delete[] visNodes;
+
+    // all nodes visited, retun true
+    return true;
 }
 
 /**
@@ -50,7 +89,7 @@ bool testConnectivity() {
  * @return true if the Bipartity is satisfied
  * @return false otherwise
  */
-bool testBipartity() {
+bool isBiparted() {
     //todo color the graph
     return false;
 }
@@ -129,6 +168,13 @@ int main(int argc, char *argv[]) {
             cout << graph->matrix[i][j] << "|";
         }
         cout << endl;
+    }
+
+    if (isConnected(graph)) {
+        cout << "Graph is connected" << endl;
+    }
+    else {
+        cout << "Graph is not connected" << endl;
     }
 
     delete graph;
