@@ -96,15 +96,18 @@ bool isConnected(graphStruct* graph) {
 bool colorGraph(graphStruct* graph, int* cNodes, int cNode, int color) {
     // check if the color can be used
     for (int i = 0; i < graph->gNum; i++) {
-        if (i == cNode) continue;
-
         if (graph->matrix[cNode][i] != 0 && cNodes[i] == color) return false;
     }
 
+    // color the node
+    cNodes[cNode] = color;
+
+    int nextColor = color == 0 ? 1 : 0;
+
     // continue the coloring
     for ( int i = 0; i  < graph->gNum; i++ ) {
-        if (graph->matrix[cNode][i] != 0 && cNodes[i] != -1) {
-            if (colorGraph(graph, cNodes, i, !color) == false) return false;
+        if (graph->matrix[cNode][i] != 0 && cNodes[i] == -1) {
+            if (colorGraph(graph, cNodes, i, nextColor) == false) return false;
         }
     }
 
@@ -224,6 +227,13 @@ int main(int argc, char *argv[]) {
     }
     else {
         cout << "Graph is not connected" << endl;
+    }
+
+    if (isBiparted(graph)) {
+        cout << "Graph is biparted" << endl;
+    }
+    else {
+        cout << "Graph is not biparted" << endl;
     }
 
     delete graph;
