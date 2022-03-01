@@ -21,17 +21,100 @@ using namespace std;
  * @brief Structure represents the graph
  * 
  */
-struct graphStruct
-{
+struct GraphStruct {
     int gNum;
     int **matrix;
-    ~graphStruct() {
+    ~GraphStruct() {
         for (int i = 0; i < gNum; i++) {
             delete [] matrix[i];
         }
         delete [] matrix;
     }
 };
+
+/**
+ * @brief Structure represents the linked list node for edge 
+ * 
+ */
+struct EdgeNode {
+    EdgeNode* prevEdge;
+    EdgeNode* nextEdge;
+
+    // edge data
+    int weight;
+    int n1;
+    int n2;
+
+    ~EdgeNode() {
+        if (prevEdge != NULL) delete prevEdge;
+        if (nextEdge != NULL) delete nextEdge;
+    }
+};
+
+
+/**
+ * @brief Function checks if the node can be colored by given color
+ * 
+ * @param graph given graph with edges
+ * @param cNodes colored nodes
+ * @param cNode current node
+ * @param color color to be used
+ * @return true if node can be colored
+ * @return false otherwise
+ */
+bool canBeColored(GraphStruct* graph, int* cNodes, int cNode, int color) {
+    for (int i = 0; i < graph->gNum; i++) {
+        if (graph->matrix[cNode][i] != 0 && cNodes[i] == color) return false;
+    }
+    return true;
+}
+
+/**
+ * @brief Create a Graph object
+ * 
+ * @param nNodes number of nodes
+ * @return GraphStruct* object with graph represantion
+ */
+GraphStruct* createGraph(int nNodes) {
+    // if bad dimention return null pointer
+    if (nNodes <= 0) return NULL;
+
+    // create new graph
+    GraphStruct* graph = new GraphStruct;
+
+    // store the number of nodes
+    graph->gNum = nNodes;
+
+    // create new graph
+    int** arr = new int*[nNodes];
+    for (int i = 0; i < nNodes; i++) {
+        arr[i] = new int[nNodes];
+    }
+    graph->matrix = arr;
+
+    // return the new graph
+    return graph;
+}
+
+/**
+ * @brief Function sums the edges weights
+ * 
+ * @param graph 
+ * @return int 
+ */
+int sumEdgesWeights(GraphStruct* graph){
+    int edgeSum = 0;
+    for (int i = 0; i < graph->gNum; i++) {
+        for (int j = i; j < graph->gNum; j++) {
+            edgeSum += graph->matrix[i][j];
+        }
+    }
+    return edgeSum;
+}
+
+EdgeNode* createSorEdgesLL(GraphStruct* graph) {
+    // todo
+}
 
 /**
  * @brief Function recursively search all available nodes and sotres
@@ -41,7 +124,7 @@ struct graphStruct
  * @param visNodes visited nodes
  * @param curNode current node
  */
-void srchdfs(graphStruct* graph, int* visNodes, int curNode) {
+void srchdfs(GraphStruct* graph, int* visNodes, int curNode) {
     visNodes[curNode] = 1;
     for (int i = 0; i < graph->gNum; i++) {
         if ( visNodes[i] == 0 && graph->matrix[curNode][i] != 0) {
@@ -56,7 +139,7 @@ void srchdfs(graphStruct* graph, int* visNodes, int curNode) {
  * @return true if Connectivity is satisfied
  * @return false otherwise
  */
-bool isConnected(graphStruct* graph) {
+bool isConnected(GraphStruct* graph) {
     // create graph unvisited nodes
     int* visNodes = new int[graph->gNum];
     
@@ -93,11 +176,9 @@ bool isConnected(graphStruct* graph) {
  * @return true if the coloring was successful
  * @return false otherwise
  */
-bool colorGraph(graphStruct* graph, int* cNodes, int cNode, int color) {
+bool colorGraph(GraphStruct* graph, int* cNodes, int cNode, int color) {
     // check if the color can be used
-    for (int i = 0; i < graph->gNum; i++) {
-        if (graph->matrix[cNode][i] != 0 && cNodes[i] == color) return false;
-    }
+    if (canBeColored(graph, cNodes, cNode, color) == false) return false;
 
     // color the node
     cNodes[cNode] = color;
@@ -120,7 +201,7 @@ bool colorGraph(graphStruct* graph, int* cNodes, int cNode, int color) {
  * @return true if the Bipartity is satisfied
  * @return false otherwise
  */
-bool isBiparted(graphStruct* graph) {
+bool isBiparted(GraphStruct* graph) {
     // create graph unvisited nodes
     int* visNodes = new int[graph->gNum];
     for (int i = 0; i < graph->gNum; i++) {
@@ -153,7 +234,7 @@ bool isBiparted(graphStruct* graph) {
  * 
  * @param fileName File name with graph prescription
  */
-graphStruct* loadGraph(string graphName) {
+GraphStruct* loadGraph(string graphName) {
     // load the file
     string line;
     ifstream graphFile ("graf_mbp/" + graphName);
@@ -175,7 +256,7 @@ graphStruct* loadGraph(string graphName) {
     cout << "your input is " << num << "\n";
     
     // create edge metrix
-    graphStruct * graph = new graphStruct;
+    GraphStruct * graph = new GraphStruct;
     graph->gNum = num;
     graph->matrix = new int*[num];
     for (int i = 0; i < num; i++) {
@@ -211,7 +292,7 @@ int main(int argc, char *argv[]) {
     }
 
     string graphName = argv[1];
-    graphStruct* graph = loadGraph(graphName);
+    GraphStruct* graph = loadGraph(graphName);
 
     cout << graph->gNum << endl;
 
