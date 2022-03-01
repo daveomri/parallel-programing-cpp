@@ -84,14 +84,49 @@ bool isConnected(graphStruct* graph) {
 }
 
 /**
+ * @brief This function colors given graph by two colors
+ * 
+ * @param graph given graph
+ * @param cNodes nodes to be colored
+ * @param cNode current node id
+ * @param color color to be used on node
+ * @return true if the coloring was successful
+ * @return false otherwise
+ */
+bool colorGraph(graphStruct* graph, int* cNodes, int cNode, int color) {
+    return false;
+}
+
+/**
  * @brief Function tests the Bipartity of given graph
  * 
  * @return true if the Bipartity is satisfied
  * @return false otherwise
  */
-bool isBiparted() {
-    //todo color the graph
-    return false;
+bool isBiparted(graphStruct* graph) {
+    // create graph unvisited nodes
+    int* visNodes = new int[graph->gNum];
+    for (int i = 0; i < graph->gNum; i++) {
+        // set the color to undefined
+        visNodes[i] = -1;
+    }
+
+    if (colorGraph(graph, visNodes, 0, 0)) {
+        for (int i = 0; i < graph->gNum; i++) {
+            if (visNodes[i] == -1) {
+                delete[] visNodes;
+                return false;
+            }
+        }
+    }
+    else {
+        delete[] visNodes;
+        return false;
+    }
+    
+    delete[] visNodes;
+
+    return true;
 }
 
 /**
