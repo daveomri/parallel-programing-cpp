@@ -94,7 +94,21 @@ bool isConnected(graphStruct* graph) {
  * @return false otherwise
  */
 bool colorGraph(graphStruct* graph, int* cNodes, int cNode, int color) {
-    return false;
+    // check if the color can be used
+    for (int i = 0; i < graph->gNum; i++) {
+        if (i == cNode) continue;
+
+        if (graph->matrix[cNode][i] != 0 && cNodes[i] == color) return false;
+    }
+
+    // continue the coloring
+    for ( int i = 0; i  < graph->gNum; i++ ) {
+        if (graph->matrix[cNode][i] != 0 && cNodes[i] != -1) {
+            if (colorGraph(graph, cNodes, i, !color) == false) return false;
+        }
+    }
+
+    return true;
 }
 
 /**
