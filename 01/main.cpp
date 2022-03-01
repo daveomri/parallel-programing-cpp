@@ -112,8 +112,21 @@ GraphStruct* createGraph(int nNodes) {
  * @return GraphStruct* new identical graph
  */
 GraphStruct* copyGraph(GraphStruct* graph) {
-    //todo
-    return NULL;
+    GraphStruct* newGraph = new GraphStruct;
+    newGraph->matrix = new int*[graph->nodesNum];
+    
+    for (int i = 0; i < graph->nodesNum; i++) {
+        newGraph->matrix[i] = new int[graph->nodesNum];
+        for (int j = 0; j < graph->nodesNum; j++) {
+            newGraph->matrix[i][j] = graph->matrix[i][j];
+        }
+    }
+
+    newGraph->edgesNum = graph->edgesNum;
+    newGraph->nodesNum = graph->nodesNum;
+    newGraph->weightsSum = graph->weightsSum;
+    
+    return newGraph;
 }
 
 /**
@@ -133,7 +146,21 @@ int sumEdgesWeights(GraphStruct* graph){
 }
 
 Edge** createSorEdgesLL(GraphStruct* graph) {
-    Edge** edges = NULL;
+    Edge** edges = new Edge*[graph->edgesNum];
+    int edgeID = 0;
+
+    // add the edges
+    for (int i = 0; i < graph->nodesNum; i++) {
+        for (int j = i; j < graph->nodesNum; j++) {
+            edges[edgeID] = new Edge;
+            edges[edgeID]->isUsed = 0;
+            edges[edgeID]->weight = graph->matrix[i][j];
+            edges[edgeID]->n1 = i;
+            edges[edgeID]->n2 = j;
+        }
+    }
+
+    // sort the edges
 
     return edges;
 }
