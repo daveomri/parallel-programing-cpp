@@ -22,10 +22,12 @@ using namespace std;
  * 
  */
 struct GraphStruct {
-    int gNum;
+    int nodesNum;
+    int weightsSum;
+    int edgesNum;
     int **matrix;
     ~GraphStruct() {
-        for (int i = 0; i < gNum; i++) {
+        for (int i = 0; i < nodesNum; i++) {
             delete [] matrix[i];
         }
         delete [] matrix;
@@ -36,19 +38,26 @@ struct GraphStruct {
  * @brief Structure represents the linked list node for edge 
  * 
  */
-struct EdgeNode {
-    EdgeNode* prevEdge;
-    EdgeNode* nextEdge;
-
+struct Edge {
     // edge data
     int weight;
     int n1;
     int n2;
+    int isUsed; // 1 or 0 if it's already used
+};
 
-    ~EdgeNode() {
-        if (prevEdge != NULL) delete prevEdge;
-        if (nextEdge != NULL) delete nextEdge;
-    }
+
+/**
+ * @brief Structure represents the search result
+ * 
+ */
+struct ResultNode {
+    ResultNode* next;
+
+    // data
+    GraphStruct* graph;
+    int* cNodes;
+    int weight;
 };
 
 
@@ -63,7 +72,7 @@ struct EdgeNode {
  * @return false otherwise
  */
 bool canBeColored(GraphStruct* graph, int* cNodes, int cNode, int color) {
-    for (int i = 0; i < graph->gNum; i++) {
+    for (int i = 0; i < graph->nodesNum; i++) {
         if (graph->matrix[cNode][i] != 0 && cNodes[i] == color) return false;
     }
     return true;
@@ -83,7 +92,7 @@ GraphStruct* createGraph(int nNodes) {
     GraphStruct* graph = new GraphStruct;
 
     // store the number of nodes
-    graph->gNum = nNodes;
+    graph->nodesNum = nNodes;
 
     // create new graph
     int** arr = new int*[nNodes];
@@ -97,6 +106,17 @@ GraphStruct* createGraph(int nNodes) {
 }
 
 /**
+ * @brief Function copies given graph
+ * 
+ * @param graph given graph
+ * @return GraphStruct* new identical graph
+ */
+GraphStruct* copyGraph(GraphStruct* graph) {
+    //todo
+    return NULL;
+}
+
+/**
  * @brief Function sums the edges weights
  * 
  * @param graph 
@@ -104,16 +124,18 @@ GraphStruct* createGraph(int nNodes) {
  */
 int sumEdgesWeights(GraphStruct* graph){
     int edgeSum = 0;
-    for (int i = 0; i < graph->gNum; i++) {
-        for (int j = i; j < graph->gNum; j++) {
+    for (int i = 0; i < graph->nodesNum; i++) {
+        for (int j = i; j < graph->nodesNum; j++) {
             edgeSum += graph->matrix[i][j];
         }
     }
     return edgeSum;
 }
 
-EdgeNode* createSorEdgesLL(GraphStruct* graph) {
-    // todo
+Edge** createSorEdgesLL(GraphStruct* graph) {
+    Edge** edges = NULL;
+
+    return edges;
 }
 
 /**
@@ -126,7 +148,7 @@ EdgeNode* createSorEdgesLL(GraphStruct* graph) {
  */
 void srchdfs(GraphStruct* graph, int* visNodes, int curNode) {
     visNodes[curNode] = 1;
-    for (int i = 0; i < graph->gNum; i++) {
+    for (int i = 0; i < graph->nodesNum; i++) {
         if ( visNodes[i] == 0 && graph->matrix[curNode][i] != 0) {
             srchdfs(graph, visNodes, i);
         }
@@ -141,10 +163,10 @@ void srchdfs(GraphStruct* graph, int* visNodes, int curNode) {
  */
 bool isConnected(GraphStruct* graph) {
     // create graph unvisited nodes
-    int* visNodes = new int[graph->gNum];
+    int* visNodes = new int[graph->nodesNum];
     
     // sets zeros to all nodes
-    for (int i = 0; i < graph->gNum; i++) {
+    for (int i = 0; i < graph->nodesNum; i++) {
         visNodes[i] = 0;
     } 
 
@@ -152,7 +174,7 @@ bool isConnected(GraphStruct* graph) {
     srchdfs(graph, visNodes, 0);
 
     // test the visited nodes
-    for (int i = 0; i < graph->gNum; i++) {
+    for (int i = 0; i < graph->nodesNum; i++) {
         // if even one node hasn't been visited  return false
         if (visNodes[i] == 0) {
             delete [] visNodes;
@@ -186,7 +208,7 @@ bool colorGraph(GraphStruct* graph, int* cNodes, int cNode, int color) {
     int nextColor = color == 0 ? 1 : 0;
 
     // continue the coloring
-    for ( int i = 0; i  < graph->gNum; i++ ) {
+    for ( int i = 0; i  < graph->nodesNum; i++ ) {
         if (graph->matrix[cNode][i] != 0 && cNodes[i] == -1) {
             if (colorGraph(graph, cNodes, i, nextColor) == false) return false;
         }
@@ -203,14 +225,14 @@ bool colorGraph(GraphStruct* graph, int* cNodes, int cNode, int color) {
  */
 bool isBiparted(GraphStruct* graph) {
     // create graph unvisited nodes
-    int* visNodes = new int[graph->gNum];
-    for (int i = 0; i < graph->gNum; i++) {
+    int* visNodes = new int[graph->nodesNum];
+    for (int i = 0; i < graph->nodesNum; i++) {
         // set the color to undefined
         visNodes[i] = -1;
     }
 
     if (colorGraph(graph, visNodes, 0, 0)) {
-        for (int i = 0; i < graph->gNum; i++) {
+        for (int i = 0; i < graph->nodesNum; i++) {
             if (visNodes[i] == -1) {
                 delete[] visNodes;
                 return false;
@@ -257,21 +279,32 @@ GraphStruct* loadGraph(string graphName) {
     
     // create edge metrix
     GraphStruct * graph = new GraphStruct;
-    graph->gNum = num;
+    graph->nodesNum = num;
     graph->matrix = new int*[num];
     for (int i = 0; i < num; i++) {
         graph->matrix[i] = new int[num];
     }
 
+    int weightsSum = 0;
+    int edgesNum = 0;
+    
     // read the rest of the file
     for (int i = 0; i < num; i++) {
         getline(graphFile, line);
         istringstream iss(line);
 
         for (int j = 0; j < num; j++) {
-            iss >> graph->matrix[i][j];    
+            iss >> graph->matrix[i][j];
+            if (graph->matrix[i][j] != 0){
+                edgesNum++;
+                weightsSum+=graph->matrix[i][j];
+            }
         }
     }
+
+    // fix the total weight and total edges num
+    graph->edgesNum = edgesNum/2;
+    graph->weightsSum = weightsSum/2;
 
     return graph;
 }
@@ -294,14 +327,16 @@ int main(int argc, char *argv[]) {
     string graphName = argv[1];
     GraphStruct* graph = loadGraph(graphName);
 
-    cout << graph->gNum << endl;
+    cout << graph->nodesNum << endl;
 
-    for (int i = 0; i < graph->gNum; i++){
-        for (int j = 0; j < graph->gNum; j++) {
+    for (int i = 0; i < graph->nodesNum; i++){
+        for (int j = 0; j < graph->nodesNum; j++) {
             cout << graph->matrix[i][j] << "|";
         }
         cout << endl;
     }
+
+    cout << graph->weightsSum << " edgs:" << graph->edgesNum << endl;
 
     if (isConnected(graph)) {
         cout << "Graph is connected" << endl;
