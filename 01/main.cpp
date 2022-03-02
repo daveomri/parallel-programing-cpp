@@ -367,8 +367,12 @@ ResultNode* addResult(ResultNode* results, GraphStruct* graph, int* cNodes) {
     return newResult;
 }
 
-void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges, ResultNode* results, int* cNodes ) {
+void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges, ResultNode* results, int* cNodes, int trashWeights ) {
     // test if should continue
+    if (results != NULL) {
+        int freeWeights = graph->weightsSum - trashWeights - subgraph->weightsSum;
+        if ( subgraph->weightsSum + freeWeights < results->graph->weightsSum ) return;
+    }
 
     // get first available edge
     Edge* edge = NULL;
@@ -390,8 +394,10 @@ void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges
 
     // if can be colored edge 1 0
 
+    // dont use this edge
     edge->isUsed = -1;
-    searchBiCoSubgraphs(graph, subgraph, edges, results, cNodes);
+    trashWeights += edge->weight;
+    searchBiCoSubgraphs(graph, subgraph, edges, results, cNodes, trashWeights);
 }
 
 ResultNode* getMaxBiparSubgraph(GraphStruct* graph) {
