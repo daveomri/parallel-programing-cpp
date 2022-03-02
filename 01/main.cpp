@@ -60,6 +60,7 @@ struct ResultNode {
     int weight;
 };
 
+// ------------------------------------------------------------------------
 
 /**
  * @brief Function checks if the node can be colored by given color
@@ -127,6 +128,49 @@ GraphStruct* copyGraph(GraphStruct* graph) {
     newGraph->weightsSum = graph->weightsSum;
     
     return newGraph;
+}
+
+/**
+ * @brief Function tests if the node can be colored with given color
+ * 
+ * @param graph given graph
+ * @param cNodes array of colored nodes
+ * @param cNode id of curren node
+ * @param color color to be used on cNode
+ * @return true if can be colored
+ * @return false otherwise
+ */
+bool canColorNode(GraphStruct* graph, int* cNodes, int cNode, int color) {
+    for (int i = 0; i < graph->nodesNum; i++) {
+        if (graph->matrix[cNode][i] != 0 && cNodes[i] == color) return false;
+    }
+    return true;
+}
+
+/**
+ * @brief Function adds edge to graph
+ * 
+ * @param graph given graph
+ * @param edge edge to be added
+ */
+void addEdge(GraphStruct* graph, Edge* edge) {
+    graph->edgesNum += 1;
+    graph->weightsSum += edge->weight;
+    graph->matrix[edge->n1][edge->n2] = edge->weight;
+    graph->matrix[edge->n2][edge->n1] = edge->weight;
+}
+
+/**
+ * @brief Removed edge from graph
+ * 
+ * @param graph given graph
+ * @param edge edge to be removed
+ */
+void removeEdge(GraphStruct* graph, Edge* edge) {
+    graph->edgesNum -= 1;
+    graph->weightsSum -= edge->weight;
+    graph->matrix[edge->n1][edge->n2] = 0;
+    graph->matrix[edge->n2][edge->n1] = 0;
 }
 
 /**
@@ -309,9 +353,16 @@ ResultNode* addResult(ResultNode* results, GraphStruct* graph, int* cNodes) {
     return newResult;
 }
 
+void searchBiCoSubgraphs(GraphStruct* graph, int* cNodes) {
+    // get first available edge 
 
+    // if can be colored edge 0 1
 
+    // if can be colored edge 1 0
 
+    // ignore edge - -1
+
+}
 
 ResultNode* getMaxBiparSubgraph(GraphStruct* graph) {
     // create all neccesary components
@@ -319,9 +370,15 @@ ResultNode* getMaxBiparSubgraph(GraphStruct* graph) {
     int* cNodes = new int[graph->nodesNum];
     GraphStruct* subgraph = createGraph(graph->nodesNum);
     Edge** edges = createSorEdgesLL(graph);
+    int edgeNum = 0;
     
-    // begin the search
+    // color the first node
+    cNodes[edges[0]->n1] = 0;
 
+    // get the results
+    searchBiCoSubgraphs(graph, cNodes);
+    
+    // return the result
     return results;
 }
 
@@ -384,6 +441,9 @@ GraphStruct* loadGraph(string graphName) {
 
     return graph;
 }
+
+// ------------------------------------------------------------------------
+
 
 /**
  * @brief Main funciton from witch the program runs
