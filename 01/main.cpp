@@ -131,6 +131,23 @@ GraphStruct* copyGraph(GraphStruct* graph) {
 }
 
 /**
+ * @brief Function copies given vector
+ * 
+ * @param vec vector to be copies
+ * @param len length of vector
+ * @return int* copy of given vector
+ */
+int* copyVector(int* vec, int len) {
+    int* copyVec = new int[len];
+
+    for (int i = 0; i < len; i++) {
+        copyVec[i] = vec[i];
+    }
+
+    return copyVec;
+}
+
+/**
  * @brief Function tests if the node can be colored with given color
  * 
  * @param graph given graph
@@ -384,15 +401,72 @@ void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges
     }
 
     if (edge == NULL) {
-        //test the solution
+        // subgraph is not valid
+        if (isConnected(subgraph) == false) return;
+
+        // store results
+        addResult(results, subgraph, copyVector(cNodes, graph->nodesNum));
+        return;
     }
 
     // edge is being used
     edge->isUsed = 1;
 
     // if can be colored edge 0 1 and delete edge after you are done
+    if (
+        cNodes[edge->n1] != 1 && cNodes[edge->n2] != 0 &&
+        canColorNode(subgraph, cNodes, edge->n1, 0) &&
+        canColorNode(subgraph, cNodes, edge->n2, 1)
+        ) {
+            
+        // indication to clean after search
+        int n1C = cNodes[edge->n1] == 0 ? 0 : 1;
+        int n2C = cNodes[edge->n2] == 1 ? 0 : 1;
+
+        // color the nodes
+        cNodes[edge->n1] = 0;
+        cNodes[edge->n2] = 1;
+
+        // add the edge to the graph
+        addEdge(subgraph, edge);
+
+        // continue the search with this setting
+        searchBiCoSubgraphs(graph, subgraph, edges, results, cNodes, trashWeights);
+
+        // remove edge from graph
+        removeEdge(subgraph, edge);
+
+        cNodes[edge->n1] = n1C == 1 ? -1 : 0;
+        cNodes[edge->n2] = n2C == 1 ? -1 : 1;
+    }
 
     // if can be colored edge 1 0 and delete edge after you are done
+    if (
+        cNodes[edge->n1] != 0 && cNodes[edge->n2] != 1 &&
+        canColorNode(subgraph, cNodes, edge->n1, 1) &&
+        canColorNode(subgraph, cNodes, edge->n2, 0)
+        ) {
+            
+        // indication to clean after search
+        int n1C = cNodes[edge->n1] == 1 ? 0 : 1;
+        int n2C = cNodes[edge->n2] == 0 ? 0 : 1;
+
+        // color the nodes
+        cNodes[edge->n1] = 1;
+        cNodes[edge->n2] = 0;
+
+        // add the edge to the graph
+        addEdge(subgraph, edge);
+
+        // continue the search with this setting
+        searchBiCoSubgraphs(graph, subgraph, edges, results, cNodes, trashWeights);
+
+        // remove edge from graph
+        removeEdge(subgraph, edge);
+
+        cNodes[edge->n1] = n1C == 1 ? -1 : 0;
+        cNodes[edge->n2] = n2C == 1 ? -1 : 1;
+    }
 
     // dont use this edge
     edge->isUsed = -1;
