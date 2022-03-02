@@ -145,6 +145,12 @@ int sumEdgesWeights(GraphStruct* graph){
     return edgeSum;
 }
 
+/**
+ * @brief Create array of sorted edges
+ * 
+ * @param graph graph with edges to be sorted
+ * @return Edge** sorted array of edges
+ */
 Edge** createSorEdgesLL(GraphStruct* graph) {
     Edge** edges = new Edge*[graph->edgesNum];
     int edgeID = 0;
@@ -160,7 +166,17 @@ Edge** createSorEdgesLL(GraphStruct* graph) {
         }
     }
 
-    // sort the edges
+    // sort the edges - buble sort descending
+    Edge * tmpEdge = edges[0];
+    for (int i = 0; i < graph->nodesNum; i++) {
+        tmpEdge = edges[i];
+        for (int j = i+1; j < graph->nodesNum; j++) {
+            if (edges[j]->weight > edges[i]->weight) {
+                edges[i] = edges[j];
+                edges[j] = tmpEdge;
+            }
+        }
+    }
 
     return edges;
 }
@@ -277,6 +293,23 @@ bool isBiparted(GraphStruct* graph) {
 }
 
 /**
+ * @brief Function adds new result to top od the linked list
+ * 
+ * @param results results so far, linked list
+ * @param graph graph with result
+ * @param cNodes colored nodes of given graph1
+ * @return ResultNode* updated results
+ */
+ResultNode* addResult(ResultNode* results, GraphStruct* graph, int* cNodes) {
+    ResultNode* newResult = new ResultNode;
+    newResult->cNodes = cNodes;
+    newResult->graph = graph;
+    newResult->next = results;
+
+    return newResult;
+}
+
+/**
  * @brief Function loads the file with given name
  *        in the graph_mbp folder and stores its
  *        data to the array
@@ -336,6 +369,20 @@ GraphStruct* loadGraph(string graphName) {
     return graph;
 }
 
+
+
+ResultNode* getMaxBiparSubgraph(GraphStruct* graph) {
+    // create all neccesary components
+    ResultNode* results = NULL;
+    int* cNodes = new int[graph->nodesNum];
+    GraphStruct* subgraph = createGraph(graph->nodesNum);
+    Edge** edges = createSorEdgesLL(graph);
+    
+    // begin the search
+
+    return results;
+}
+
 /**
  * @brief Main funciton from witch the program runs
  * 
@@ -344,7 +391,6 @@ GraphStruct* loadGraph(string graphName) {
  * @return int 
  */
 int main(int argc, char *argv[]) {
-    // todo
     // test if input is correct
     if (argc != 2) {
         cout << "Incorrect input, just name of graph is needed" << "\n";
@@ -354,30 +400,26 @@ int main(int argc, char *argv[]) {
     string graphName = argv[1];
     GraphStruct* graph = loadGraph(graphName);
 
+    if (graph == NULL) {
+        return 0;
+    }
+
     cout << graph->nodesNum << endl;
 
-    for (int i = 0; i < graph->nodesNum; i++){
-        for (int j = 0; j < graph->nodesNum; j++) {
-            cout << graph->matrix[i][j] << "|";
-        }
-        cout << endl;
-    }
+    cout << "weights " << graph->weightsSum << " edgs:" << graph->edgesNum << endl;
 
-    cout << graph->weightsSum << " edgs:" << graph->edgesNum << endl;
-
-    if (isConnected(graph)) {
-        cout << "Graph is connected" << endl;
-    }
-    else {
+    // test if graph can be used
+    if (!isConnected(graph)) {
         cout << "Graph is not connected" << endl;
+        return 0;
     }
-
+  
+    // end if the graph itself is biparted
     if (isBiparted(graph)) {
         cout << "Graph is biparted" << endl;
     }
-    else {
-        cout << "Graph is not biparted" << endl;
-    }
+
+    ResultNode* results = getMaxBiparSubgraph(graph);
 
     delete graph;
 
