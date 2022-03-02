@@ -345,6 +345,20 @@ bool isBiparted(GraphStruct* graph) {
  * @return ResultNode* updated results
  */
 ResultNode* addResult(ResultNode* results, GraphStruct* graph, int* cNodes) {
+    // delete old worse solutions
+    if (results != NULL) {
+        if (results->graph->weightsSum < graph->weightsSum) {
+            ResultNode* tmpResult = results;
+            while (tmpResult->next != NULL) {
+                tmpResult = results->next;
+                delete results;
+            }
+            delete tmpResult;
+            results = NULL;
+        }
+    }
+
+    // add new result
     ResultNode* newResult = new ResultNode;
     newResult->cNodes = cNodes;
     newResult->graph = graph;
@@ -353,15 +367,31 @@ ResultNode* addResult(ResultNode* results, GraphStruct* graph, int* cNodes) {
     return newResult;
 }
 
-void searchBiCoSubgraphs(GraphStruct* graph, int* cNodes) {
-    // get first available edge 
+void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges, ResultNode* results, int* cNodes ) {
+    // test if should continue
+
+    // get first available edge
+    Edge* edge = NULL;
+    for (int i = 0; i < graph->edgesNum; i++) {
+        if (edges[i]->isUsed == 0) {
+            edge = edges[i];
+            break;
+        }
+    }
+
+    if (edge == NULL) {
+        //test the solution
+    }
+
+    // edge is being used
+    edge->isUsed = 1;
 
     // if can be colored edge 0 1
 
     // if can be colored edge 1 0
 
-    // ignore edge - -1
-
+    edge->isUsed = -1;
+    searchBiCoSubgraphs(graph, subgraph, edges, results, cNodes);
 }
 
 ResultNode* getMaxBiparSubgraph(GraphStruct* graph) {
@@ -370,13 +400,12 @@ ResultNode* getMaxBiparSubgraph(GraphStruct* graph) {
     int* cNodes = new int[graph->nodesNum];
     GraphStruct* subgraph = createGraph(graph->nodesNum);
     Edge** edges = createSorEdgesLL(graph);
-    int edgeNum = 0;
     
     // color the first node
     cNodes[edges[0]->n1] = 0;
 
     // get the results
-    searchBiCoSubgraphs(graph, cNodes);
+    searchBiCoSubgraphs(graph, subgraph, edges, results, cNodes);
     
     // return the result
     return results;
