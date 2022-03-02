@@ -384,6 +384,16 @@ ResultNode* addResult(ResultNode* results, GraphStruct* graph, int* cNodes) {
     return newResult;
 }
 
+/**
+ * @brief Function combinatons of edges 0-1, 1-0 or none
+ * 
+ * @param graph given graph to be used
+ * @param subgraph subgraph with result
+ * @param edges set of all edges
+ * @param results all best results
+ * @param cNodes nodes colors
+ * @param trashWeights weight of edges that cannot be used
+ */
 void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges, ResultNode* results, int* cNodes, int trashWeights) {
     // test if should continue
     if (results != NULL) {
