@@ -309,6 +309,22 @@ ResultNode* addResult(ResultNode* results, GraphStruct* graph, int* cNodes) {
     return newResult;
 }
 
+
+
+
+
+ResultNode* getMaxBiparSubgraph(GraphStruct* graph) {
+    // create all neccesary components
+    ResultNode* results = NULL;
+    int* cNodes = new int[graph->nodesNum];
+    GraphStruct* subgraph = createGraph(graph->nodesNum);
+    Edge** edges = createSorEdgesLL(graph);
+    
+    // begin the search
+
+    return results;
+}
+
 /**
  * @brief Function loads the file with given name
  *        in the graph_mbp folder and stores its
@@ -367,20 +383,6 @@ GraphStruct* loadGraph(string graphName) {
     graph->weightsSum = weightsSum/2;
 
     return graph;
-}
-
-
-
-ResultNode* getMaxBiparSubgraph(GraphStruct* graph) {
-    // create all neccesary components
-    ResultNode* results = NULL;
-    int* cNodes = new int[graph->nodesNum];
-    GraphStruct* subgraph = createGraph(graph->nodesNum);
-    Edge** edges = createSorEdgesLL(graph);
-    
-    // begin the search
-
-    return results;
 }
 
 /**
