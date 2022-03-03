@@ -510,25 +510,19 @@ void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges
 ResultNode* getMaxBiparSubgraph(GraphStruct* graph) {
     // create all neccesary components
     ResultNode* results = NULL;
+    GraphStruct* subgraph = createGraph(graph->nodesNum);
+    Edge** edges = createSorEdgesLL(graph);
+    
     int* cNodes = new int[graph->nodesNum];
     for (int i = 0; i < graph->nodesNum; i++) {
         cNodes[i] = -1;
     }
 
-    GraphStruct* subgraph = createGraph(graph->nodesNum);
-    Edge** edges = createSorEdgesLL(graph);
-
     // color the first node
     cNodes[edges[0]->n1] = 0;
 
-    cout << graph->edgesNum << " " << graph->weightsSum << " " << graph->nodesNum << endl;
-    cout << subgraph->edgesNum << " " << subgraph->weightsSum << " " << subgraph->nodesNum << endl;
-    // for (int i = 0; i < graph->edgesNum; i++) {
-    //     cout << "n1: " << edges[i]->n1 << ", n2: " << edges[i]->n2 << ", weight: " << edges[i]->weight << endl; 
-    // }
-
     // get the results
-    //searchBiCoSubgraphs(graph, subgraph, edges, results, cNodes, 0);
+    searchBiCoSubgraphs(graph, subgraph, edges, results, cNodes, 0);
 
     // delete unnecesary
     delete[] cNodes;
@@ -639,6 +633,10 @@ int main(int argc, char *argv[]) {
     }
 
     ResultNode* results = getMaxBiparSubgraph(graph);
+
+    if (results != NULL) {
+        cout << "we got something" << endl;
+    }
 
     delete graph;
 
