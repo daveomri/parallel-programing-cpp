@@ -60,6 +60,12 @@ struct ResultNode {
     int weight;
 };
 
+struct Results
+{
+    ResultNode* results;
+};
+
+
 // ------------------------------------------------------------------------
 
 /**
@@ -369,27 +375,28 @@ bool isBiparted(GraphStruct* graph) {
  * @param cNodes colored nodes of given graph1
  * @return ResultNode* updated results
  */
-ResultNode* addResult(ResultNode* results, GraphStruct* graph, int* cNodes) {
+void addResult(Results* results, GraphStruct* graph, int* cNodes) {
     // delete old worse solutions
-    if (results != NULL) {
-        if (results->graph->weightsSum < graph->weightsSum) {
-            ResultNode* tmpResult = results;
+    if (results->results != NULL) {
+        if (results->results->graph->weightsSum < graph->weightsSum) {
+            ResultNode* tmpResult = results->results;
             while (tmpResult->next != NULL) {
-                tmpResult = results->next;
-                delete results;
+                tmpResult = results->results->next;
+                delete results->results;
             }
             delete tmpResult;
-            results = NULL;
+            results->results = NULL;
         }
     }
 
     // add new result
     ResultNode* newResult = new ResultNode;
-    newResult->cNodes = cNodes;
-    newResult->graph = graph;
-    newResult->next = results;
+    newResult->cNodes = copyVector(cNodes, graph->nodesNum);
+    newResult->graph = copyGraph(graph);
+    newResult->next = results->results;
 
-    return newResult;
+    results->results = newResult;
+    //cout<< "weight: " << graph->weightsSum <<endl;
 }
 
 /**
@@ -402,11 +409,12 @@ ResultNode* addResult(ResultNode* results, GraphStruct* graph, int* cNodes) {
  * @param cNodes nodes colors
  * @param trashWeights weight of edges that cannot be used
  */
-void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges, ResultNode* results, int* cNodes, int trashWeights) {
+void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges, Results* results, int* cNodes, int trashWeights) {
+    //cout << "begin results: " << results << endl;
     // test if should continue
-    if (results != NULL) {
+    if (results->results != NULL) {
         int freeWeights = graph->weightsSum - trashWeights - subgraph->weightsSum;
-        if ( subgraph->weightsSum + freeWeights < results->graph->weightsSum ) return;
+        if ( subgraph->weightsSum + freeWeights < results->results->graph->weightsSum ) return;
     }
     //cout << " passed the test" << endl;
 
@@ -422,11 +430,21 @@ void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges
 
     // no more available edge
     if (edge == NULL) {
+        //int i;
         // subgraph is not valid
         if (isConnected(subgraph) == false) return;
-
+        if (results->results != NULL && results->results->graph->weightsSum > subgraph->weightsSum) return;
+        // for (int i = 0; i < subgraph->nodesNum; i++) {
+        //     for (int j = 0; j < subgraph->nodesNum; j++) {
+        //         cout << subgraph->matrix[i][j] << "\t|\t";
+        //     }
+        //     cout << endl;
+        // }
+        //cin >> i;
+        //cout << "result here" << endl;
         // store results
-        addResult(results, subgraph, copyVector(cNodes, graph->nodesNum));
+        addResult(results, subgraph, cNodes);
+        //cout << "results: " << results << endl;
         return;
     }
 
@@ -436,7 +454,7 @@ void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges
     edge->isUsed = 1;
 
     // if can be colored edge 0 1 and delete edge after you are done
-    cout << "n1: " << cNodes[edge->n1] << ", n2: " << cNodes[edge->n2] << endl;
+    //cout << "n1: " << cNodes[edge->n1] << ", n2: " << cNodes[edge->n2] << endl;
     
     if (
         cNodes[edge->n1] != 1 && cNodes[edge->n2] != 0 &&
@@ -444,7 +462,7 @@ void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges
         canColorNode(subgraph, cNodes, edge->n2, 1)
         ) {
         
-        cout << "inside 0-1" << endl;
+        //cout << "inside 0-1" << endl;
             
         // indication to clean after search
         int n1C = cNodes[edge->n1] == 0 ? 0 : 1;
@@ -473,7 +491,7 @@ void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges
         canColorNode(subgraph, cNodes, edge->n1, 1) &&
         canColorNode(subgraph, cNodes, edge->n2, 0)
         ) {
-        cout << "inside 0-1" << endl;
+        //cout << "inside 0-1" << endl;
         // indication to clean after search
         int n1C = cNodes[edge->n1] == 1 ? 0 : 1;
         int n2C = cNodes[edge->n2] == 0 ? 0 : 1;
@@ -502,14 +520,16 @@ void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges
     trashWeights += edge->weight;
     searchBiCoSubgraphs(graph, subgraph, edges, results, cNodes, trashWeights);
     
-    cout << "passed no edge" << endl;
+    //cout << "passed no edge" << endl;
 
     edge->isUsed = 0;
 }
 
-ResultNode* getMaxBiparSubgraph(GraphStruct* graph) {
+Results* getMaxBiparSubgraph(GraphStruct* graph) {
     // create all neccesary components
-    ResultNode* results = NULL;
+    Results* results = new Results;
+    results->results = NULL;
+
     GraphStruct* subgraph = createGraph(graph->nodesNum);
     Edge** edges = createSorEdgesLL(graph);
     
@@ -523,6 +543,8 @@ ResultNode* getMaxBiparSubgraph(GraphStruct* graph) {
 
     // get the results
     searchBiCoSubgraphs(graph, subgraph, edges, results, cNodes, 0);
+
+    //cout << "results" << results << endl;
 
     // delete unnecesary
     delete[] cNodes;
@@ -617,9 +639,9 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    cout << graph->nodesNum << endl;
+    //cout << graph->nodesNum << endl;
 
-    cout << "weights " << graph->weightsSum << " edgs:" << graph->edgesNum << endl;
+    //cout << "weights " << graph->weightsSum << " edgs:" << graph->edgesNum << endl;
 
     // test if graph can be used
     if (!isConnected(graph)) {
@@ -632,10 +654,11 @@ int main(int argc, char *argv[]) {
         cout << "Graph is biparted" << endl;
     }
 
-    ResultNode* results = getMaxBiparSubgraph(graph);
+    Results* results = getMaxBiparSubgraph(graph);
 
-    if (results != NULL) {
+    if (results->results != NULL) {
         cout << "we got something" << endl;
+        cout << "weight: " << results->results->graph->weightsSum << endl; 
     }
 
     delete graph;
