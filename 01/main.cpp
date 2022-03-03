@@ -59,6 +59,10 @@ struct ResultNode {
     GraphStruct* graph;
     int* cNodes;
     int weight;
+    ~ResultNode() {
+        delete graph;
+        delete [] cNodes;
+    }
 };
 
 struct Results
@@ -535,7 +539,8 @@ Results* getMaxBiparSubgraph(GraphStruct* graph) {
 
     // delete unnecesary
     delete[] cNodes;
-    delete edges;
+    for (int i = 0; i < graph->edgesNum; i++) delete edges[i];
+    delete[] edges;
     delete subgraph;
 
     // return the result
@@ -668,6 +673,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    delete results;
     delete graph;
 
     return 0;
