@@ -14,6 +14,7 @@
 #include <cstdlib>
 #include <string>
 #include <sstream>
+#include <iomanip>
 
 using namespace std;
 
@@ -240,15 +241,18 @@ Edge** createSorEdgesLL(GraphStruct* graph) {
             }
         }
     }
+
     
     // sort the edges - buble sort descending
-    Edge * tmpEdge = edges[0];
+    Edge * tmpEdge = NULL;
     for (int i = 0; i < graph->edgesNum; i++) {
         tmpEdge = edges[i];
         for (int j = i+1; j < graph->edgesNum; j++) {
             if (edges[j]->weight > edges[i]->weight) {
                 edges[i] = edges[j];
                 edges[j] = tmpEdge;
+                // restart the highest
+                tmpEdge = edges[i];
             }
         }
     }
@@ -398,7 +402,7 @@ void addResult(Results* results, GraphStruct* graph, int* cNodes) {
     newResult->next = results->results;
 
     results->results = newResult;
-    cout<< "weight: " << graph->weightsSum <<endl;
+    //cout<< "weight: " << graph->weightsSum <<endl;
 }
 
 /**
@@ -415,7 +419,8 @@ void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges
     // test if should continue
     if (results->results != NULL) {
         int freeWeights = graph->weightsSum - trashWeights - subgraph->weightsSum;
-        if ( subgraph->weightsSum + freeWeights < results->results->graph->weightsSum ) return;
+       
+        if ( (subgraph->weightsSum + freeWeights) < results->results->graph->weightsSum ) return;
     }
 
     // get first available edge
@@ -429,24 +434,17 @@ void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges
 
     // no more available edge
     if (edge == NULL) {
+        // Is new solution better
+        if (results->results != NULL && results->results->graph->weightsSum > subgraph->weightsSum) return;
+
         // subgraph is not valid
         if (isConnected(subgraph) == false) return;
      
-        if (results->results != NULL && results->results->graph->weightsSum > subgraph->weightsSum) return;
-        // for (int i = 0; i < subgraph->nodesNum; i++) {
-        //     for (int j = 0; j < subgraph->nodesNum; j++) {
-        //         cout << subgraph->matrix[i][j] << "\t|\t";
-        //     }
-        //     cout << endl;
-        // }
-    
         // store results
         addResult(results, subgraph, cNodes);
         return;
     }
-
-    // edge is being used
-    edge->isUsed = 1;
+    
 
     // if can be colored edge 0 1 and delete edge after you are done
     if (
@@ -454,6 +452,8 @@ void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges
         canColorNode(subgraph, cNodes, edge->n1, 0) &&
         canColorNode(subgraph, cNodes, edge->n2, 1)
         ) {
+        // edge is being used
+        edge->isUsed = 1;
         
         // indication to clean after search
         int n1C = cNodes[edge->n1] == 0 ? 0 : 1;
@@ -482,6 +482,8 @@ void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges
         canColorNode(subgraph, cNodes, edge->n1, 1) &&
         canColorNode(subgraph, cNodes, edge->n2, 0)
         ) {
+        // edge is being used
+        edge->isUsed = 1;
         
         // indication to clean after search
         int n1C = cNodes[edge->n1] == 1 ? 0 : 1;
@@ -504,15 +506,11 @@ void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges
         cNodes[edge->n2] = n2C == 1 ? -1 : 0;
     }
 
-    //cout << "passed 1-0" << endl;
-
     // dont use this edge
     edge->isUsed = -1;
     trashWeights += edge->weight;
     searchBiCoSubgraphs(graph, subgraph, edges, results, cNodes, trashWeights);
     
-    //cout << "passed no edge" << endl;
-
     edge->isUsed = 0;
 }
 
@@ -529,24 +527,11 @@ Results* getMaxBiparSubgraph(GraphStruct* graph) {
         cNodes[i] = -1;
     }
 
-    // color the first node
-    //cNodes[edges[0]->n1] = 0;
-
-    // for (int i = 0; i < graph->nodesNum; i++) {
-    //     for (int j = 0; j < graph->nodesNum; j++) {
-    //         cout << graph->matrix[i][j] << "\t|";
-    //     }
-    //     cout << endl;
-    // }
-
-    // for (int i = 0; i < graph->edgesNum; i++) {
-    //     cout << "n1: " << edges[i] ->n1  << ", n2: " << edges[i]->n2 << ", weight" << edges[i]->weight << endl;
-    // }
+    // color one node
+    cNodes[edges[0]->n1] = 0;
 
     // get the results
     searchBiCoSubgraphs(graph, subgraph, edges, results, cNodes, 0);
-
-    //cout << "results" << results << endl;
 
     // delete unnecesary
     delete[] cNodes;
@@ -583,7 +568,7 @@ GraphStruct* loadGraph(string graphName) {
     }
     else cout << "Unable to read the first line.\n";
 
-    cout << "your input is " << num << "\n";
+    //cout << "your input is " << num << "\n";
     
     // create edge metrix
     GraphStruct * graph = new GraphStruct;
@@ -641,10 +626,6 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    //cout << graph->nodesNum << endl;
-
-    //cout << "weights " << graph->weightsSum << " edgs:" << graph->edgesNum << endl;
-
     // test if graph can be used
     if (!isConnected(graph)) {
         cout << "Graph is not connected" << endl;
@@ -659,8 +640,32 @@ int main(int argc, char *argv[]) {
     Results* results = getMaxBiparSubgraph(graph);
 
     if (results->results != NULL) {
-        cout << "we got something" << endl;
-        cout << "weight: " << results->results->graph->weightsSum << endl; 
+        cout << "RESULTS" << endl;
+        
+        ResultNode* tmpRes = results->results;
+        while (tmpRes != NULL) {
+            cout << "Weight sum: " << endl;
+            cout << tmpRes->graph->weightsSum << endl;
+            cout << "Node colors:" << endl;
+            for (int i = 0; i < tmpRes->graph->nodesNum; i++) {
+                cout << i << ":" << tmpRes->cNodes[i] << ", ";
+            }
+            cout << endl;
+
+            cout << "Edges:" << endl;
+            for (int i = 0; i < tmpRes->graph->nodesNum; i++) {
+                for (int j = 0; j < tmpRes->graph->nodesNum; j++) {
+                    cout << " | " << setw(4) << tmpRes->graph->matrix[i][j];
+                }
+                cout << " |" << endl;
+            }
+
+            tmpRes = tmpRes->next;
+            delete results->results;
+            results->results = tmpRes;
+
+            cout << "-----------------------------------------------------------" << endl;
+        }
     }
 
     delete graph;
