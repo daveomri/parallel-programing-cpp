@@ -396,7 +396,7 @@ void addResult(Results* results, GraphStruct* graph, int* cNodes) {
     newResult->next = results->results;
 
     results->results = newResult;
-    //cout<< "weight: " << graph->weightsSum <<endl;
+    cout<< "weight: " << graph->weightsSum <<endl;
 }
 
 /**
@@ -410,13 +410,11 @@ void addResult(Results* results, GraphStruct* graph, int* cNodes) {
  * @param trashWeights weight of edges that cannot be used
  */
 void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges, Results* results, int* cNodes, int trashWeights) {
-    //cout << "begin results: " << results << endl;
     // test if should continue
     if (results->results != NULL) {
         int freeWeights = graph->weightsSum - trashWeights - subgraph->weightsSum;
         if ( subgraph->weightsSum + freeWeights < results->results->graph->weightsSum ) return;
     }
-    //cout << " passed the test" << endl;
 
     // get first available edge
     Edge* edge = NULL;
@@ -426,13 +424,12 @@ void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges
             break;
         }
     }
-    //cout << "find edge num pass" << endl;
 
     // no more available edge
     if (edge == NULL) {
-        //int i;
         // subgraph is not valid
         if (isConnected(subgraph) == false) return;
+     
         if (results->results != NULL && results->results->graph->weightsSum > subgraph->weightsSum) return;
         // for (int i = 0; i < subgraph->nodesNum; i++) {
         //     for (int j = 0; j < subgraph->nodesNum; j++) {
@@ -440,30 +437,22 @@ void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges
         //     }
         //     cout << endl;
         // }
-        //cin >> i;
-        //cout << "result here" << endl;
+    
         // store results
         addResult(results, subgraph, cNodes);
-        //cout << "results: " << results << endl;
         return;
     }
-
-    //cout << "passed no more available node" << endl;
 
     // edge is being used
     edge->isUsed = 1;
 
     // if can be colored edge 0 1 and delete edge after you are done
-    //cout << "n1: " << cNodes[edge->n1] << ", n2: " << cNodes[edge->n2] << endl;
-    
     if (
         cNodes[edge->n1] != 1 && cNodes[edge->n2] != 0 &&
         canColorNode(subgraph, cNodes, edge->n1, 0) &&
         canColorNode(subgraph, cNodes, edge->n2, 1)
         ) {
         
-        //cout << "inside 0-1" << endl;
-            
         // indication to clean after search
         int n1C = cNodes[edge->n1] == 0 ? 0 : 1;
         int n2C = cNodes[edge->n2] == 1 ? 0 : 1;
@@ -484,14 +473,14 @@ void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges
         cNodes[edge->n1] = n1C == 1 ? -1 : 0;
         cNodes[edge->n2] = n2C == 1 ? -1 : 1;
     }
-    //cout << "passed first 0-1" << endl;
+
     // if can be colored edge 1 0 and delete edge after you are done
     if (
         cNodes[edge->n1] != 0 && cNodes[edge->n2] != 1 &&
         canColorNode(subgraph, cNodes, edge->n1, 1) &&
         canColorNode(subgraph, cNodes, edge->n2, 0)
         ) {
-        //cout << "inside 0-1" << endl;
+        
         // indication to clean after search
         int n1C = cNodes[edge->n1] == 1 ? 0 : 1;
         int n2C = cNodes[edge->n2] == 0 ? 0 : 1;
@@ -539,7 +528,18 @@ Results* getMaxBiparSubgraph(GraphStruct* graph) {
     }
 
     // color the first node
-    cNodes[edges[0]->n1] = 0;
+    //cNodes[edges[0]->n1] = 0;
+
+    // for (int i = 0; i < graph->nodesNum; i++) {
+    //     for (int j = 0; j < graph->nodesNum; j++) {
+    //         cout << graph->matrix[i][j] << "\t|";
+    //     }
+    //     cout << endl;
+    // }
+
+    // for (int i = 0; i < graph->edgesNum; i++) {
+    //     cout << "n1: " << edges[i] ->n1  << ", n2: " << edges[i]->n2 << ", weight" << edges[i]->weight << endl;
+    // }
 
     // get the results
     searchBiCoSubgraphs(graph, subgraph, edges, results, cNodes, 0);
