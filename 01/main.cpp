@@ -383,6 +383,8 @@ void addResult(Results* results, GraphStruct* graph, int* cNodes) {
             while (tmpResult->next != NULL) {
                 tmpResult = results->results->next;
                 delete results->results;
+                results->results = NULL;
+                results->results = tmpResult;
             }
             delete tmpResult;
             results->results = NULL;
