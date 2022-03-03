@@ -99,6 +99,9 @@ GraphStruct* createGraph(int nNodes) {
     int** arr = new int*[nNodes];
     for (int i = 0; i < nNodes; i++) {
         arr[i] = new int[nNodes];
+        for (int j = 0; j < nNodes; j++) {
+            arr[i][j] = 0; 
+        }
     }
     graph->matrix = arr;
 
@@ -516,6 +519,12 @@ ResultNode* getMaxBiparSubgraph(GraphStruct* graph) {
     // color the first node
     cNodes[edges[0]->n1] = 0;
 
+    for (int i = 0; i < subgraph->nodesNum; i++) {
+        for (int j = 0; j < subgraph->nodesNum; j++) {
+            cout << subgraph->matrix[i][j];
+        }
+        cout << endl;
+    }
     // for (int i = 0; i < graph->edgesNum; i++) {
     //     cout << "n1: " << edges[i]->n1 << ", n2: " << edges[i]->n2 << ", weight: " << edges[i]->weight << endl; 
     // }
