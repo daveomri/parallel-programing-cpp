@@ -219,19 +219,22 @@ Edge** createSorEdgesLL(GraphStruct* graph) {
     // add the edges
     for (int i = 0; i < graph->nodesNum; i++) {
         for (int j = i; j < graph->nodesNum; j++) {
-            edges[edgeID] = new Edge;
-            edges[edgeID]->isUsed = 0;
-            edges[edgeID]->weight = graph->matrix[i][j];
-            edges[edgeID]->n1 = i;
-            edges[edgeID]->n2 = j;
+            if (graph->matrix[i][j] != 0) {
+                edges[edgeID] = new Edge;
+                edges[edgeID]->isUsed = 0;
+                edges[edgeID]->weight = graph->matrix[i][j];
+                edges[edgeID]->n1 = i;
+                edges[edgeID]->n2 = j;
+                edgeID++;
+            }
         }
     }
-
+    
     // sort the edges - buble sort descending
     Edge * tmpEdge = edges[0];
-    for (int i = 0; i < graph->nodesNum; i++) {
+    for (int i = 0; i < graph->edgesNum; i++) {
         tmpEdge = edges[i];
-        for (int j = i+1; j < graph->nodesNum; j++) {
+        for (int j = i+1; j < graph->edgesNum; j++) {
             if (edges[j]->weight > edges[i]->weight) {
                 edges[i] = edges[j];
                 edges[j] = tmpEdge;
@@ -400,6 +403,7 @@ void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges
         int freeWeights = graph->weightsSum - trashWeights - subgraph->weightsSum;
         if ( subgraph->weightsSum + freeWeights < results->graph->weightsSum ) return;
     }
+    //cout << " passed the test" << endl;
 
     // get first available edge
     Edge* edge = NULL;
@@ -409,7 +413,9 @@ void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges
             break;
         }
     }
+    //cout << "find edge num pass" << endl;
 
+    // no more available edge
     if (edge == NULL) {
         // subgraph is not valid
         if (isConnected(subgraph) == false) return;
@@ -419,15 +425,21 @@ void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges
         return;
     }
 
+    //cout << "passed no more available node" << endl;
+
     // edge is being used
     edge->isUsed = 1;
 
     // if can be colored edge 0 1 and delete edge after you are done
+    cout << "n1: " << cNodes[edge->n1] << ", n2: " << cNodes[edge->n2] << endl;
+    
     if (
         cNodes[edge->n1] != 1 && cNodes[edge->n2] != 0 &&
         canColorNode(subgraph, cNodes, edge->n1, 0) &&
         canColorNode(subgraph, cNodes, edge->n2, 1)
         ) {
+        
+        cout << "inside 0-1" << endl;
             
         // indication to clean after search
         int n1C = cNodes[edge->n1] == 0 ? 0 : 1;
@@ -449,14 +461,14 @@ void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges
         cNodes[edge->n1] = n1C == 1 ? -1 : 0;
         cNodes[edge->n2] = n2C == 1 ? -1 : 1;
     }
-
+    //cout << "passed first 0-1" << endl;
     // if can be colored edge 1 0 and delete edge after you are done
     if (
         cNodes[edge->n1] != 0 && cNodes[edge->n2] != 1 &&
         canColorNode(subgraph, cNodes, edge->n1, 1) &&
         canColorNode(subgraph, cNodes, edge->n2, 0)
         ) {
-
+        cout << "inside 0-1" << endl;
         // indication to clean after search
         int n1C = cNodes[edge->n1] == 1 ? 0 : 1;
         int n2C = cNodes[edge->n2] == 0 ? 0 : 1;
@@ -474,15 +486,18 @@ void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges
         // remove edge from graph
         removeEdge(subgraph, edge);
 
-        cNodes[edge->n1] = n1C == 1 ? -1 : 0;
-        cNodes[edge->n2] = n2C == 1 ? -1 : 1;
+        cNodes[edge->n1] = n1C == 1 ? -1 : 1;
+        cNodes[edge->n2] = n2C == 1 ? -1 : 0;
     }
+
+    //cout << "passed 1-0" << endl;
 
     // dont use this edge
     edge->isUsed = -1;
     trashWeights += edge->weight;
     searchBiCoSubgraphs(graph, subgraph, edges, results, cNodes, trashWeights);
     
+    cout << "passed no edge" << endl;
 
     edge->isUsed = 0;
 }
@@ -491,15 +506,23 @@ ResultNode* getMaxBiparSubgraph(GraphStruct* graph) {
     // create all neccesary components
     ResultNode* results = NULL;
     int* cNodes = new int[graph->nodesNum];
+    for (int i = 0; i < graph->nodesNum; i++) {
+        cNodes[i] = -1;
+    }
+
     GraphStruct* subgraph = createGraph(graph->nodesNum);
     Edge** edges = createSorEdgesLL(graph);
-    
+
     // color the first node
     cNodes[edges[0]->n1] = 0;
 
+    // for (int i = 0; i < graph->edgesNum; i++) {
+    //     cout << "n1: " << edges[i]->n1 << ", n2: " << edges[i]->n2 << ", weight: " << edges[i]->weight << endl; 
+    // }
+
     // get the results
-    searchBiCoSubgraphs(graph, subgraph, edges, results, cNodes, 0);
-    
+    //searchBiCoSubgraphs(graph, subgraph, edges, results, cNodes, 0);
+
     // delete unnecesary
     delete[] cNodes;
     delete edges;
