@@ -1,6 +1,6 @@
 /**
  * @file main.cpp
- * @author David Omrai (omraidav@fit.cvut.com)
+ * @author David Omrai (omraidav@fit.cvut.cz)
  * @brief First ni-pdp project sequence algorithm
  * @version 0.1
  * @date 2022-02-17

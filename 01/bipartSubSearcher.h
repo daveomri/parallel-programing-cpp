@@ -1,7 +1,7 @@
 /**
  * @file bipartSubSearcher.h
  * @author David Omrai
- * @brief 
+ * @brief All necessary functions for bipart. max subgraph search
  * @version 0.1
  * @date 2022-03-04
  * 

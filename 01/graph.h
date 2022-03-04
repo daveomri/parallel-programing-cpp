@@ -1,7 +1,7 @@
 /**
  * @file graph.h
  * @author David Omrai
- * @brief 
+ * @brief Functions for operations with graph
  * @version 0.1
  * @date 2022-03-04
  * 
