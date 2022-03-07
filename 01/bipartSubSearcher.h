@@ -26,17 +26,17 @@
  * @param cNodes nodes colors
  * @param trashWeights weight of edges that cannot be used
  */
-void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges, Results* results, int* cNodes, int trashWeights) {
+void searchBiCoSubgraphs(Graph* graph, Graph* subgraph, Edge** edges, Results* results, int* cNodes, int trashWeights) {
     // test if should continue
     if (results->results != NULL) {
-        int freeWeights = graph->weightsSum - trashWeights - subgraph->weightsSum;
+        int freeWeights = graph->getWeightsSum() - trashWeights - subgraph->getWeightsSum();
        
-        if ( (subgraph->weightsSum + freeWeights) < results->results->graph->weightsSum ) return;
+        if ( (subgraph->getWeightsSum() + freeWeights) < results->results->weight ) return;
     }
 
     // get first available edge
     Edge* edge = NULL;
-    for (int i = 0; i < graph->edgesNum; i++) {
+    for (int i = 0; i < graph->getEdgesNum(); i++) {
         if (edges[i]->isUsed == 0) {
             edge = edges[i];
             break;
@@ -46,13 +46,13 @@ void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges
     // no more available edge
     if (edge == NULL) {
         // Is new solution better
-        if (results->results != NULL && results->results->graph->weightsSum > subgraph->weightsSum) return;
+        if (results->results != NULL && results->results->weight > subgraph->getWeightsSum()) return;
 
         // subgraph is not valid
         if (isConnected(subgraph) == false) return;
      
         // store results
-        addResult(results, subgraph, cNodes);
+        addResult(results, subgraph, cNodes, edges, graph->getEdgesNum());
         return;
     }
     
@@ -75,13 +75,13 @@ void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges
         cNodes[edge->n2] = 1;
 
         // add the edge to the graph
-        addEdge(subgraph, edge);
+        subgraph->addEdge(edge);
 
         // continue the search with this setting
         searchBiCoSubgraphs(graph, subgraph, edges, results, cNodes, trashWeights);
 
         // remove edge from graph
-        removeEdge(subgraph, edge);
+        subgraph->removeEdge(edge);
 
         cNodes[edge->n1] = n1C == 1 ? -1 : 0;
         cNodes[edge->n2] = n2C == 1 ? -1 : 1;
@@ -105,13 +105,13 @@ void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges
         cNodes[edge->n2] = 0;
 
         // add the edge to the graph
-        addEdge(subgraph, edge);
+        subgraph->addEdge(edge);
 
         // continue the search with this setting
         searchBiCoSubgraphs(graph, subgraph, edges, results, cNodes, trashWeights);
 
         // remove edge from graph
-        removeEdge(subgraph, edge);
+        subgraph->removeEdge(edge);
 
         cNodes[edge->n1] = n1C == 1 ? -1 : 1;
         cNodes[edge->n2] = n2C == 1 ? -1 : 0;
@@ -125,15 +125,14 @@ void searchBiCoSubgraphs(GraphStruct* graph, GraphStruct* subgraph, Edge** edges
     edge->isUsed = 0;
 }
 
-Results* getMaxBiparSubgraph(std::string graphName) {
-    GraphStruct* graph = loadGraph(graphName);
+Results* getMaxBiparSubgraph(Graph* graph) {
 
     if (graph == NULL) return NULL;
 
     // test if graph can be used
     if (!isConnected(graph)) {
         std::cout << "Graph is not connected" << '\n';
-        return 0;
+        return NULL;
     }
   
     // end if the graph itself is biparted
@@ -145,11 +144,12 @@ Results* getMaxBiparSubgraph(std::string graphName) {
     Results* results = new Results;
     results->results = NULL;
 
-    GraphStruct* subgraph = createGraph(graph->nodesNum);
+    Graph* subgraph = new Graph(graph->getNodesNum());
     Edge** edges = createSorEdgesLL(graph);
+
     
-    int* cNodes = new int[graph->nodesNum];
-    for (int i = 0; i < graph->nodesNum; i++) {
+    int* cNodes = new int[graph->getNodesNum()];
+    for (int i = 0; i < graph->getNodesNum(); i++) {
         cNodes[i] = -1;
     }
 
@@ -161,10 +161,9 @@ Results* getMaxBiparSubgraph(std::string graphName) {
 
     // delete unnecesary
     delete[] cNodes;
-    for (int i = 0; i < graph->edgesNum; i++) delete edges[i];
+    for (int i = 0; i < graph->getEdgesNum(); i++) delete edges[i];
     delete[] edges;
     delete subgraph;
-    delete graph;
 
     // return the result
     return results;
