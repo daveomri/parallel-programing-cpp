@@ -48,9 +48,11 @@ class Graph {
         int weightsSum;
         int edgesNum;
         int* matrix;
+        Edge** edges;
+
     public:
     //--------------------------------------
-        Graph(int numNodes): nodesNum(numNodes), weightsSum(0), edgesNum(0) {
+        Graph(int numNodes): nodesNum(numNodes), weightsSum(0), edgesNum(0), edges(NULL) {
             matrix = new int[numNodes*numNodes];
             for (int i = 0; i < numNodes*numNodes; i++) {
                 matrix[i] = 0;
@@ -61,11 +63,20 @@ class Graph {
             this->nodesNum = 0;
             this->weightsSum = 0;
             this->edgesNum = 0;
+            this->edges = NULL;
+            this->matrix = NULL;
             loadGraph(graphName);
         }
 
         ~Graph() {
-            delete[] matrix;
+            if (matrix) delete[] matrix;
+
+            if(edges != NULL) {
+                for(int i = 0; i < this->edgesNum; i++) {
+                    delete edges[i];
+                }
+                delete[] edges;
+            }
         }
 
         int getNodesNum() {return this->nodesNum;}
@@ -73,6 +84,10 @@ class Graph {
         int getWeightsSum() {return this->weightsSum;}
 
         int getEdgesNum() {return this->edgesNum;}
+
+        int* getMatrix(){ return this->matrix;}
+
+        Edge** getEdges() {return this->edges;}
 
         void setWeightsSum(int weightsSum) {
             this->weightsSum = weightsSum;
@@ -85,6 +100,10 @@ class Graph {
         void setEdgeWeight(int x, int y, int weight) {
             if (matrix == NULL) return;
             matrix[x*this->nodesNum + y] = weight;
+        }
+
+        void setEdges(Edge** edges) {
+            this->edges = edges;
         }
 
         int getEdgeWeight(int x, int y) {
@@ -225,15 +244,14 @@ struct ResultNode {
 
     // data
     //Graph* graph;
-    Edge** edges;
+    int* graphWeights;
+    //int* usedEdges;
     int edgesNum;
     int* cNodes;
     int weight;
     ~ResultNode() {
-        for (int i = 0; i < edgesNum; i++) {
-            delete edges[i];
-        }
-        delete[] edges;
+        //delete[] usedEdges;
+        delete[] graphWeights;
         delete [] cNodes;
     }
 };
@@ -465,7 +483,7 @@ Edge** copyEdges(Edge** edges, int sizeEdges, int sizeNew) {
  * @param cNodes colored nodes of given graph1
  * @return ResultNode* updated results
  */
-void addResult(Results* results, Graph* graph, int* cNodes, Edge** edges, int edgesNum) {
+void addResult(Results* results, Graph* graph, int* cNodes, int edgesNum) {
     // delete old worse solutions
     if (results->results != NULL) {
         if (results->results->weight < graph->getWeightsSum()) {
@@ -485,7 +503,8 @@ void addResult(Results* results, Graph* graph, int* cNodes, Edge** edges, int ed
     ResultNode* newResult = new ResultNode;
     newResult->cNodes = copyVector(cNodes, graph->getNodesNum());
     //newResult->graph = graph->copyGraph();
-    newResult->edges = copyEdges(edges, edgesNum, graph->getEdgesNum());
+    newResult->graphWeights = copyVector(graph->getMatrix(), graph->getNodesNum()*2);
+    //newResult->usedEdges = copyVector(usedEdges, graph->getEdgesNum());//copyEdges(edges, edgesNum, graph->getEdgesNum());
     newResult->edgesNum = graph->getEdgesNum();
     newResult->weight = graph->getWeightsSum();
     newResult->next = results->results;

@@ -33,6 +33,11 @@ int main(int argc, char *argv[]) {
 
 
     Graph* graph = new Graph(graphName);
+
+    if (graph->getMatrix() == NULL) {
+        delete graph;
+        return 1;
+    }
    
 
     Results* results = getMaxBiparSubgraph(graph);

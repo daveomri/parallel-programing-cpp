@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <string>
 #include <iomanip>
+#include <omp.h>
 
 #include "graph.h"
 
@@ -21,12 +22,11 @@
  * 
  * @param graph given graph to be used
  * @param subgraph subgraph with result
- * @param edges set of all edges
  * @param results all best results
  * @param cNodes nodes colors
  * @param trashWeights weight of edges that cannot be used
  */
-void searchBiCoSubgraphs(Graph* graph, Graph* subgraph, Edge** edges, Results* results, int* cNodes, int trashWeights) {
+void searchBiCoSubgraphs(Graph* graph, Graph* subgraph, Results* results, int* cNodes, int trashWeights, int lastEdgeId) {
     // test if should continue
     if (results->results != NULL) {
         int freeWeights = graph->getWeightsSum() - trashWeights - subgraph->getWeightsSum();
@@ -36,9 +36,12 @@ void searchBiCoSubgraphs(Graph* graph, Graph* subgraph, Edge** edges, Results* r
 
     // get first available edge
     Edge* edge = NULL;
-    for (int i = 0; i < graph->getEdgesNum(); i++) {
-        if (edges[i]->isUsed == 0) {
-            edge = edges[i];
+    int curEdgeId = 0;
+    //int a;
+    for (int i = lastEdgeId; i < graph->getEdgesNum(); i++) {
+        if (!subgraph->getEdgeWeight(graph->getEdges()[i]->n1, graph->getEdges()[i]->n2)) {
+            edge = graph->getEdges()[i];
+            curEdgeId = i;
             break;
         }
     }
@@ -52,7 +55,7 @@ void searchBiCoSubgraphs(Graph* graph, Graph* subgraph, Edge** edges, Results* r
         if (isConnected(subgraph) == false) return;
      
         // store results
-        addResult(results, subgraph, cNodes, edges, graph->getEdgesNum());
+        addResult(results, subgraph, cNodes, graph->getEdgesNum());
         return;
     }
     
@@ -64,7 +67,6 @@ void searchBiCoSubgraphs(Graph* graph, Graph* subgraph, Edge** edges, Results* r
         canColorNode(subgraph, cNodes, edge->n2, 1)
         ) {
         // edge is being used
-        edge->isUsed = 1;
         
         // indication to clean after search
         int n1C = cNodes[edge->n1] == 0 ? 0 : 1;
@@ -78,7 +80,7 @@ void searchBiCoSubgraphs(Graph* graph, Graph* subgraph, Edge** edges, Results* r
         subgraph->addEdge(edge);
 
         // continue the search with this setting
-        searchBiCoSubgraphs(graph, subgraph, edges, results, cNodes, trashWeights);
+        searchBiCoSubgraphs(graph, subgraph, results, cNodes, trashWeights, curEdgeId+1);
 
         // remove edge from graph
         subgraph->removeEdge(edge);
@@ -94,7 +96,6 @@ void searchBiCoSubgraphs(Graph* graph, Graph* subgraph, Edge** edges, Results* r
         canColorNode(subgraph, cNodes, edge->n2, 0)
         ) {
         // edge is being used
-        edge->isUsed = 1;
         
         // indication to clean after search
         int n1C = cNodes[edge->n1] == 1 ? 0 : 1;
@@ -108,7 +109,7 @@ void searchBiCoSubgraphs(Graph* graph, Graph* subgraph, Edge** edges, Results* r
         subgraph->addEdge(edge);
 
         // continue the search with this setting
-        searchBiCoSubgraphs(graph, subgraph, edges, results, cNodes, trashWeights);
+        searchBiCoSubgraphs(graph, subgraph, results, cNodes, trashWeights, curEdgeId+1);
 
         // remove edge from graph
         subgraph->removeEdge(edge);
@@ -118,11 +119,9 @@ void searchBiCoSubgraphs(Graph* graph, Graph* subgraph, Edge** edges, Results* r
     }
 
     // dont use this edge
-    edge->isUsed = -1;
     trashWeights += edge->weight;
-    searchBiCoSubgraphs(graph, subgraph, edges, results, cNodes, trashWeights);
-    
-    edge->isUsed = 0;
+    searchBiCoSubgraphs(graph, subgraph, results, cNodes, trashWeights, curEdgeId+1);
+    //std::cout << "out" << "\n";
 }
 
 Results* getMaxBiparSubgraph(Graph* graph) {
@@ -145,7 +144,7 @@ Results* getMaxBiparSubgraph(Graph* graph) {
     results->results = NULL;
 
     Graph* subgraph = new Graph(graph->getNodesNum());
-    Edge** edges = createSorEdgesLL(graph);
+    graph->setEdges(createSorEdgesLL(graph));
 
     
     int* cNodes = new int[graph->getNodesNum()];
@@ -154,15 +153,15 @@ Results* getMaxBiparSubgraph(Graph* graph) {
     }
 
     // color one node
-    cNodes[edges[0]->n1] = 0;
+    cNodes[graph->getEdges()[0]->n1] = 0;
 
     // get the results
-    searchBiCoSubgraphs(graph, subgraph, edges, results, cNodes, 0);
+    searchBiCoSubgraphs(graph, subgraph, results, cNodes, 0, 0);
 
     // delete unnecesary
     delete[] cNodes;
-    for (int i = 0; i < graph->getEdgesNum(); i++) delete edges[i];
-    delete[] edges;
+    //for (int i = 0; i < graph->getEdgesNum(); i++) delete graph->getEdges()[i];
+    //delete[] graph->getEdges();
     delete subgraph;
 
     // return the result
