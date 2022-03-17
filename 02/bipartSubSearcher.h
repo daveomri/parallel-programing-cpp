@@ -54,23 +54,16 @@ void searchBiCoSubgraphs(Graph* graph, Graph* subgraph, Results* results, int* c
 
     // no more available edge
     if (edge == NULL) {
-        // Is new solution better
-        if (results->results != NULL && results->results->weight > subgraph->getWeightsSum()) {
-            delete subgraph;
-            delete[] cNodes;
-            return;
-        };
-
-        // subgraph is not valid
-        if (isConnected(subgraph) == false) {
-            delete subgraph;
-            delete[] cNodes;
-            return;
-        };
-     
-        // store results
-        #pragma omp critical
-            addResult(results, subgraph, cNodes, graph->getEdgesNum());
+        #pragma omp critical 
+        {
+            // Is new solution better
+            if ((results->results == NULL && isConnected(subgraph) == true) || 
+                (results->results != NULL && results->results->weight <= subgraph->getWeightsSum() && isConnected(subgraph) == true)) {
+                addResult(results, subgraph, cNodes, graph->getEdgesNum());
+            };
+        }
+        // delete subgraph;
+        // delete[] cNodes;
         return;
     }
     
@@ -81,8 +74,10 @@ void searchBiCoSubgraphs(Graph* graph, Graph* subgraph, Results* results, int* c
         canColorNode(subgraph, cNodes, edge->n1, 0) &&
         canColorNode(subgraph, cNodes, edge->n2, 1)
         ) {
+            Graph* newSubgraph = subgraph->copyGraph();
+            int* newCNodes = copyVector(cNodes, graph->getNodesNum());
             #pragma omp task
-                searchColorCombination(graph, subgraph->copyGraph(), results, copyVector(cNodes, graph->getNodesNum()), trashWeights, curEdgeId+1, edge, 0, 1);
+                searchColorCombination(graph, newSubgraph, results, newCNodes, trashWeights, curEdgeId+1, edge, 0, 1);
             //#pragma omp taskwait
     }
 
@@ -92,16 +87,22 @@ void searchBiCoSubgraphs(Graph* graph, Graph* subgraph, Results* results, int* c
         canColorNode(subgraph, cNodes, edge->n1, 1) &&
         canColorNode(subgraph, cNodes, edge->n2, 0)
         ) {
+            Graph* newSubgraph = subgraph->copyGraph();
+            int* newCNodes = copyVector(cNodes, graph->getNodesNum());
             #pragma omp task
-                searchColorCombination(graph, subgraph->copyGraph(), results, copyVector(cNodes, graph->getNodesNum()), trashWeights, curEdgeId+1, edge, 1, 0);
+                searchColorCombination(graph, newSubgraph, results, newCNodes, trashWeights, curEdgeId+1, edge, 1, 0);
             //#pragma omp taskwait
     }
 
     // dont use this edge
     trashWeights += edge->weight;
+    Graph* newSubgraph = subgraph->copyGraph();
+    int* newCNodes = copyVector(cNodes, graph->getNodesNum());
     #pragma omp task
-        searchBiCoSubgraphs(graph, subgraph->copyGraph(), results, copyVector(cNodes, graph->getNodesNum()), trashWeights, curEdgeId+1);
-    #pragma omp taskwait
+        searchBiCoSubgraphs(graph, newSubgraph, results, newCNodes, trashWeights, curEdgeId+1);
+    //#pragma omp taskwait
+
+    // clean the mess
     delete subgraph;
     delete[] cNodes;
 }
