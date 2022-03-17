@@ -17,6 +17,8 @@
 
 #include "graph.h"
 
+void searchColorCombination(Graph* graph, Graph* subgraph, Results* results, int* cNodes, int trashWeights, int lastEdgeId, Edge* edge, int cN1, int cN2);
+
 /**
  * @brief Function combinatons of edges 0-1, 1-0 or none
  * 
@@ -31,7 +33,11 @@ void searchBiCoSubgraphs(Graph* graph, Graph* subgraph, Results* results, int* c
     if (results->results != NULL) {
         int freeWeights = graph->getWeightsSum() - trashWeights - subgraph->getWeightsSum();
        
-        if ( (subgraph->getWeightsSum() + freeWeights) < results->results->weight ) return;
+        if ( (subgraph->getWeightsSum() + freeWeights) < results->results->weight ) {
+            delete subgraph;
+            delete[] cNodes;
+            return;
+        };
     }
 
     // get first available edge
@@ -49,13 +55,22 @@ void searchBiCoSubgraphs(Graph* graph, Graph* subgraph, Results* results, int* c
     // no more available edge
     if (edge == NULL) {
         // Is new solution better
-        if (results->results != NULL && results->results->weight > subgraph->getWeightsSum()) return;
+        if (results->results != NULL && results->results->weight > subgraph->getWeightsSum()) {
+            delete subgraph;
+            delete[] cNodes;
+            return;
+        };
 
         // subgraph is not valid
-        if (isConnected(subgraph) == false) return;
+        if (isConnected(subgraph) == false) {
+            delete subgraph;
+            delete[] cNodes;
+            return;
+        };
      
         // store results
-        addResult(results, subgraph, cNodes, graph->getEdgesNum());
+        #pragma omp critical
+            addResult(results, subgraph, cNodes, graph->getEdgesNum());
         return;
     }
     
@@ -66,27 +81,9 @@ void searchBiCoSubgraphs(Graph* graph, Graph* subgraph, Results* results, int* c
         canColorNode(subgraph, cNodes, edge->n1, 0) &&
         canColorNode(subgraph, cNodes, edge->n2, 1)
         ) {
-        // edge is being used
-        
-        // indication to clean after search
-        int n1C = cNodes[edge->n1] == 0 ? 0 : 1;
-        int n2C = cNodes[edge->n2] == 1 ? 0 : 1;
-
-        // color the nodes
-        cNodes[edge->n1] = 0;
-        cNodes[edge->n2] = 1;
-
-        // add the edge to the graph
-        subgraph->addEdge(edge);
-
-        // continue the search with this setting
-        searchBiCoSubgraphs(graph, subgraph, results, cNodes, trashWeights, curEdgeId+1);
-
-        // remove edge from graph
-        subgraph->removeEdge(edge);
-
-        cNodes[edge->n1] = n1C == 1 ? -1 : 0;
-        cNodes[edge->n2] = n2C == 1 ? -1 : 1;
+            #pragma omp task
+                searchColorCombination(graph, subgraph->copyGraph(), results, copyVector(cNodes, graph->getNodesNum()), trashWeights, curEdgeId+1, edge, 0, 1);
+            //#pragma omp taskwait
     }
 
     // if can be colored edge 1 0 and delete edge after you are done
@@ -95,33 +92,42 @@ void searchBiCoSubgraphs(Graph* graph, Graph* subgraph, Results* results, int* c
         canColorNode(subgraph, cNodes, edge->n1, 1) &&
         canColorNode(subgraph, cNodes, edge->n2, 0)
         ) {
-        // edge is being used
-        
-        // indication to clean after search
-        int n1C = cNodes[edge->n1] == 1 ? 0 : 1;
-        int n2C = cNodes[edge->n2] == 0 ? 0 : 1;
+            #pragma omp task
+                searchColorCombination(graph, subgraph->copyGraph(), results, copyVector(cNodes, graph->getNodesNum()), trashWeights, curEdgeId+1, edge, 1, 0);
+            //#pragma omp taskwait
+    }
 
+    // dont use this edge
+    trashWeights += edge->weight;
+    #pragma omp task
+        searchBiCoSubgraphs(graph, subgraph->copyGraph(), results, copyVector(cNodes, graph->getNodesNum()), trashWeights, curEdgeId+1);
+    #pragma omp taskwait
+    delete subgraph;
+    delete[] cNodes;
+}
+
+/**
+ * @brief todo
+ * 
+ * @param graph 
+ * @param subgraph 
+ * @param results 
+ * @param cNodes 
+ * @param trashWeights 
+ * @param lastEdgeId 
+ * @param cN1 
+ * @param cN2 
+ */
+void searchColorCombination(Graph* graph, Graph* subgraph, Results* results, int* cNodes, int trashWeights, int lastEdgeId, Edge* edge, int cN1, int cN2) {
         // color the nodes
-        cNodes[edge->n1] = 1;
-        cNodes[edge->n2] = 0;
+        cNodes[edge->n1] = cN1;
+        cNodes[edge->n2] = cN2;
 
         // add the edge to the graph
         subgraph->addEdge(edge);
 
         // continue the search with this setting
-        searchBiCoSubgraphs(graph, subgraph, results, cNodes, trashWeights, curEdgeId+1);
-
-        // remove edge from graph
-        subgraph->removeEdge(edge);
-
-        cNodes[edge->n1] = n1C == 1 ? -1 : 1;
-        cNodes[edge->n2] = n2C == 1 ? -1 : 0;
-    }
-
-    // dont use this edge
-    trashWeights += edge->weight;
-    searchBiCoSubgraphs(graph, subgraph, results, cNodes, trashWeights, curEdgeId+1);
-    //std::cout << "out" << "\n";
+        searchBiCoSubgraphs(graph, subgraph, results, cNodes, trashWeights, lastEdgeId);
 }
 
 Results* getMaxBiparSubgraph(Graph* graph) {
@@ -155,14 +161,19 @@ Results* getMaxBiparSubgraph(Graph* graph) {
     // color one node
     cNodes[graph->getEdges()[0]->n1] = 0;
 
-    // get the results
-    searchBiCoSubgraphs(graph, subgraph, results, cNodes, 0, 0);
+    // parallel run
+    #pragma omp parallel 
+    {
+        // get the results
+        #pragma omp single
+            searchBiCoSubgraphs(graph, subgraph, results, cNodes, 0, 0);
+    }
 
     // delete unnecesary
-    delete[] cNodes;
+    //delete[] cNodes;
     //for (int i = 0; i < graph->getEdgesNum(); i++) delete graph->getEdges()[i];
     //delete[] graph->getEdges();
-    delete subgraph;
+    //delete subgraph;
 
     // return the result
     return results;

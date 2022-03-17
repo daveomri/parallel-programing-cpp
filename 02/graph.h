@@ -510,4 +510,7 @@ void addResult(Results* results, Graph* graph, int* cNodes, int edgesNum) {
     newResult->next = results->results;
 
     results->results = newResult;
+
+    delete graph;
+    delete[] cNodes;
 }
