@@ -503,7 +503,7 @@ void addResult(Results* results, Graph* graph, int* cNodes, int edgesNum) {
     ResultNode* newResult = new ResultNode;
     newResult->cNodes = copyVector(cNodes, graph->getNodesNum());
     //newResult->graph = graph->copyGraph();
-    newResult->graphWeights = copyVector(graph->getMatrix(), graph->getNodesNum()*2);
+    newResult->graphWeights = copyVector(graph->getMatrix(), graph->getNodesNum()*graph->getNodesNum());
     //newResult->usedEdges = copyVector(usedEdges, graph->getEdgesNum());//copyEdges(edges, edgesNum, graph->getEdgesNum());
     newResult->edgesNum = graph->getEdgesNum();
     newResult->weight = graph->getWeightsSum();

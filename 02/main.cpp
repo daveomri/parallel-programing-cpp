@@ -63,6 +63,14 @@ int main(int argc, char *argv[]) {
             //     cout << " |" << endl;
             // }
 
+            cout << "Edges:" << "\n";
+            for (int i = 0; i < graph->getNodesNum(); i++) {
+                for (int j = 0; j < graph->getNodesNum(); j++) {
+                    cout << "  |   " << setw(4) << tmpRes->graphWeights[i*graph->getNodesNum()+j];
+                }
+                cout << "  |" << "\n";
+            }
+
             tmpRes = tmpRes->next;
             delete results->results;
             results->results = tmpRes;
