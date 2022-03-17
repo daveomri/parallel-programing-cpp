@@ -54,14 +54,16 @@ void searchBiCoSubgraphs(Graph* graph, Graph* subgraph, Results* results, int* c
 
     // no more available edge
     if (edge == NULL) {
-        #pragma omp critical 
-        {
-            // Is new solution better
-            if ((results->results == NULL && isConnected(subgraph) == true) || 
-                (results->results != NULL && results->results->weight <= subgraph->getWeightsSum() && isConnected(subgraph) == true)) {
+        
+        // Is new solution better
+        if ((results->results == NULL && isConnected(subgraph) == true) || 
+            (results->results != NULL && results->results->weight <= subgraph->getWeightsSum() && isConnected(subgraph) == true)) {
+            #pragma omp critical 
+            {
                 addResult(results, subgraph, cNodes, graph->getEdgesNum());
-            };
-        }
+            }
+        };
+        
         delete subgraph;
         delete[] cNodes;
         return;
@@ -168,7 +170,7 @@ Results* getMaxBiparSubgraph(Graph* graph) {
     cNodes[graph->getEdges()[0]->n1] = 0;
 
     // parallel run
-    // omp_set_num_threads(4);
+    omp_set_num_threads(6);
     #pragma omp parallel shared(graph, results)
     {
         // get the results
