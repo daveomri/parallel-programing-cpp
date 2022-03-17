@@ -62,8 +62,8 @@ void searchBiCoSubgraphs(Graph* graph, Graph* subgraph, Results* results, int* c
                 addResult(results, subgraph, cNodes, graph->getEdgesNum());
             };
         }
-        // delete subgraph;
-        // delete[] cNodes;
+        delete subgraph;
+        delete[] cNodes;
         return;
     }
     
@@ -77,7 +77,9 @@ void searchBiCoSubgraphs(Graph* graph, Graph* subgraph, Results* results, int* c
             Graph* newSubgraph = subgraph->copyGraph();
             int* newCNodes = copyVector(cNodes, graph->getNodesNum());
             #pragma omp task
+            {
                 searchColorCombination(graph, newSubgraph, results, newCNodes, trashWeights, curEdgeId+1, edge, 0, 1);
+            }
             //#pragma omp taskwait
     }
 
@@ -90,7 +92,9 @@ void searchBiCoSubgraphs(Graph* graph, Graph* subgraph, Results* results, int* c
             Graph* newSubgraph = subgraph->copyGraph();
             int* newCNodes = copyVector(cNodes, graph->getNodesNum());
             #pragma omp task
+            {
                 searchColorCombination(graph, newSubgraph, results, newCNodes, trashWeights, curEdgeId+1, edge, 1, 0);
+            }
             //#pragma omp taskwait
     }
 
@@ -99,10 +103,11 @@ void searchBiCoSubgraphs(Graph* graph, Graph* subgraph, Results* results, int* c
     Graph* newSubgraph = subgraph->copyGraph();
     int* newCNodes = copyVector(cNodes, graph->getNodesNum());
     #pragma omp task
+    {
         searchBiCoSubgraphs(graph, newSubgraph, results, newCNodes, trashWeights, curEdgeId+1);
+    }
     //#pragma omp taskwait
-
-    // clean the mess
+    // // clean the mess
     delete subgraph;
     delete[] cNodes;
 }
@@ -163,19 +168,18 @@ Results* getMaxBiparSubgraph(Graph* graph) {
     cNodes[graph->getEdges()[0]->n1] = 0;
 
     // parallel run
-    #pragma omp parallel 
+    // omp_set_num_threads(4);
+    #pragma omp parallel shared(graph, results)
     {
         // get the results
         #pragma omp single
+        {
+            int ID = omp_get_thread_num();
+            std::cout << "NUM THREADS: " << ID << "\n";
             searchBiCoSubgraphs(graph, subgraph, results, cNodes, 0, 0);
+        }
     }
-
-    // delete unnecesary
-    //delete[] cNodes;
-    //for (int i = 0; i < graph->getEdgesNum(); i++) delete graph->getEdges()[i];
-    //delete[] graph->getEdges();
-    //delete subgraph;
-
+    
     // return the result
     return results;
 }

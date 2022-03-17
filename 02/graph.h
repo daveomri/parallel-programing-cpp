@@ -71,7 +71,7 @@ class Graph {
         ~Graph() {
             if (matrix) delete[] matrix;
 
-            if(edges != NULL) {
+            if(edges) {
                 for(int i = 0; i < this->edgesNum; i++) {
                     delete edges[i];
                 }
@@ -510,7 +510,4 @@ void addResult(Results* results, Graph* graph, int* cNodes, int edgesNum) {
     newResult->next = results->results;
 
     results->results = newResult;
-
-    delete graph;
-    delete[] cNodes;
 }
