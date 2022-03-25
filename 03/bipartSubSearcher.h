@@ -37,7 +37,7 @@ void searchBiCoSubgraphs(Graph* graph, Graph* subgraph, Results* results, int* c
             delete subgraph;
             delete[] cNodes;
             return;
-        };
+        }
     }
 
     // get first available edge
@@ -56,13 +56,14 @@ void searchBiCoSubgraphs(Graph* graph, Graph* subgraph, Results* results, int* c
     if (edge == NULL) {
         
         // Is new solution better
-        if ((results->results == NULL && isConnected(subgraph) == true) || 
-            (results->results != NULL && results->results->weight <= subgraph->getWeightsSum() && isConnected(subgraph) == true)) {
-            #pragma omp critical 
-            {
+        #pragma omp critical 
+        {
+            if ((results->results == NULL && isConnected(subgraph) == true) || 
+                (results->results != NULL && results->results->weight <= subgraph->getWeightsSum() && isConnected(subgraph) == true)) {
                 addResult(results, subgraph, cNodes, graph->getEdgesNum());
+            
             }
-        };
+        }
         
         delete subgraph;
         delete[] cNodes;
