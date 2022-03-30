@@ -14,6 +14,7 @@
 #include <string>
 #include <iomanip>
 #include <omp.h>
+#include <list>
 
 #include "graph.h"
 
@@ -37,7 +38,105 @@ struct SearchState {
     }
 };
 
-void searchColorCombination(Graph* graph, Results* results, SearchState* searchState, Edge* edge, int cN1, int cN2);
+
+void setColorCombination(SearchState* searchState, Edge* edge, int cN1, int cN2);
+
+
+/**
+ * @brief Funciton uses BFS approach to generate given number of search states
+ * 
+ * @param graph 
+ * @param results 
+ * @param list 
+ * @param statesNum 
+ */
+void bfsSearchStates(Graph* graph, Results* results, std::list<SearchState*> &list, size_t statesNum) {
+    while(list.size() < statesNum) {
+        // End search if nothing remained
+        if (list.size() == 0) return;
+
+        // Get new state
+        SearchState* searchState = list.back();
+        list.pop_back();
+        
+        // Prepare variables
+        Graph* subgraph = searchState->subgraph;
+        int* cNodes = searchState->cNodes;
+        int trashWeights = searchState->trashWeights;
+        int lastEdgeId = searchState->lastEdgeId;
+        
+        // Test if to continue
+        if (results->results != NULL) {
+            int freeWeights = graph->getWeightsSum() - trashWeights - subgraph->getWeightsSum();
+        
+            if ( (subgraph->getWeightsSum() + freeWeights) < results->results->weight ) {
+                delete searchState;
+                continue;
+            }
+        }
+
+        // get first available edge
+        Edge* edge = NULL;
+        int curEdgeId = 0;
+        //int a;
+        for (int i = lastEdgeId; i < graph->getEdgesNum(); i++) {
+            if (!subgraph->getEdgeWeight(graph->getEdges()[i]->n1, graph->getEdges()[i]->n2)) {
+                edge = graph->getEdges()[i];
+                curEdgeId = i;
+                break;
+            }
+        }
+
+        // no more available edge
+        if (edge == NULL) {
+            
+            // Is new solution better
+            if ((results->results == NULL && isConnected(subgraph) == true) || 
+                (results->results != NULL && results->results->weight <= subgraph->getWeightsSum() && isConnected(subgraph) == true)) {
+                addResult(results, subgraph, cNodes, graph->getEdgesNum());
+            }
+            
+            delete searchState;
+            continue;
+        }
+
+        // if can be colored edge 0 1 and delete edge after you are done
+        if (
+            cNodes[edge->n1] != 1 && cNodes[edge->n2] != 0 &&
+            canColorNode(subgraph, cNodes, edge->n1, 0) &&
+            canColorNode(subgraph, cNodes, edge->n2, 1)
+            ) {
+                Graph* newSubgraph = subgraph->copyGraph();
+                int* newCNodes = copyVector(cNodes, graph->getNodesNum());
+                SearchState* newState = new SearchState(newSubgraph, newCNodes, trashWeights, curEdgeId+1);
+                setColorCombination(newState, edge, 0, 1);
+                // continue the search with this setting
+                list.push_front(newState);
+        }
+
+        // if can be colored edge 1 0 and delete edge after you are done
+        if (
+            cNodes[edge->n1] != 0 && cNodes[edge->n2] != 1 &&
+            canColorNode(subgraph, cNodes, edge->n1, 1) &&
+            canColorNode(subgraph, cNodes, edge->n2, 0)
+            ) {
+                Graph* newSubgraph = subgraph->copyGraph();
+                int* newCNodes = copyVector(cNodes, graph->getNodesNum());
+                SearchState* newState = new SearchState(newSubgraph, newCNodes, trashWeights, curEdgeId+1);
+                setColorCombination(newState, edge, 1, 0);
+                // continue the search with this setting
+                list.push_front(newState);
+        }
+
+        // dont use this edge
+        trashWeights += edge->weight;
+        Graph* newSubgraph = subgraph->copyGraph();
+        int* newCNodes = copyVector(cNodes, graph->getNodesNum());
+        list.push_front(new SearchState(newSubgraph, newCNodes, trashWeights, curEdgeId+1));
+        // clean the mess
+        delete searchState;
+    }
+}
 
 /**
  * @brief Function combinatons of edges 0-1, 1-0 or none
@@ -104,11 +203,10 @@ void searchBiCoSubgraphs(Graph* graph, Results* results, SearchState* searchStat
         ) {
             Graph* newSubgraph = subgraph->copyGraph();
             int* newCNodes = copyVector(cNodes, graph->getNodesNum());
-            #pragma omp task
-            {
-                searchColorCombination(graph, results, new SearchState(newSubgraph, newCNodes, trashWeights, curEdgeId+1), edge, 0, 1);
-            }
-            //#pragma omp taskwait
+            SearchState* newState = new SearchState(newSubgraph, newCNodes, trashWeights, curEdgeId+1);
+            setColorCombination(newState, edge, 0, 1);
+            // continue the search with this setting
+            searchBiCoSubgraphs(graph, results, newState);
     }
 
     // if can be colored edge 1 0 and delete edge after you are done
@@ -119,28 +217,23 @@ void searchBiCoSubgraphs(Graph* graph, Results* results, SearchState* searchStat
         ) {
             Graph* newSubgraph = subgraph->copyGraph();
             int* newCNodes = copyVector(cNodes, graph->getNodesNum());
-            #pragma omp task
-            {
-                searchColorCombination(graph, results, new SearchState(newSubgraph, newCNodes, trashWeights, curEdgeId+1), edge, 1, 0);
-            }
-            //#pragma omp taskwait
+            SearchState* newState = new SearchState(newSubgraph, newCNodes, trashWeights, curEdgeId+1);
+            setColorCombination(newState, edge, 1, 0);
+            // continue the search with this setting
+            searchBiCoSubgraphs(graph, results, newState);
     }
 
     // dont use this edge
     trashWeights += edge->weight;
     Graph* newSubgraph = subgraph->copyGraph();
     int* newCNodes = copyVector(cNodes, graph->getNodesNum());
-    #pragma omp task
-    {
-        searchBiCoSubgraphs(graph, results, new SearchState(newSubgraph, newCNodes, trashWeights, curEdgeId+1));
-    }
-    //#pragma omp taskwait
-    // // clean the mess
+    searchBiCoSubgraphs(graph, results, new SearchState(newSubgraph, newCNodes, trashWeights, curEdgeId+1));
+    // clean the mess
     delete searchState;
 }
 
 /**
- * @brief todo
+ * @brief Function sets the color of nodes and then continue the search
  * 
  * @param graph 
  * @param subgraph 
@@ -151,16 +244,13 @@ void searchBiCoSubgraphs(Graph* graph, Results* results, SearchState* searchStat
  * @param cN1 
  * @param cN2 
  */
-void searchColorCombination(Graph* graph, Results* results, SearchState* searchState, Edge* edge, int cN1, int cN2) {
+void setColorCombination(SearchState* searchState, Edge* edge, int cN1, int cN2) {
         // color the nodes
         searchState->cNodes[edge->n1] = cN1;
         searchState->cNodes[edge->n2] = cN2;
 
         // add the edge to the graph
         searchState->subgraph->addEdge(edge);
-
-        // continue the search with this setting
-        searchBiCoSubgraphs(graph, results, searchState);
 }
 
 Results* getMaxBiparSubgraph(Graph* graph) {
@@ -194,20 +284,31 @@ Results* getMaxBiparSubgraph(Graph* graph) {
     // color one node
     cNodes[graph->getEdges()[0]->n1] = 0;
 
-    SearchState* ss = new SearchState(subgraph, cNodes, 0, 0);
+    // BFS search to generate enough search states
+    std::list<SearchState*> list;
+    list.push_back(new SearchState(subgraph, cNodes, 0, 0));
+    bfsSearchStates(graph, results, list, 100);
 
-    // parallel run
-    omp_set_num_threads(6);
-    #pragma omp parallel shared(graph, results)
-    {
-        // get the results
-        #pragma omp single
-        {
-            int ID = omp_get_thread_num();
-            std::cout << "NUM THREADS: " << ID << "\n";
-            searchBiCoSubgraphs(graph, results, ss);
-        }
+    // for cycle for paralel cycle
+    
+
+    for (auto i: list){
+        std::cout << i->subgraph->getWeightsSum() << "\n";
+        delete i;
     }
+
+    // // parallel run
+    // omp_set_num_threads(6);
+    // #pragma omp parallel shared(graph, results)
+    // {
+    //     // get the results
+    //     #pragma omp single
+    //     {
+    //         int ID = omp_get_thread_num();
+    //         std::cout << "NUM THREADS: " << ID << "\n";
+    //         searchBiCoSubgraphs(graph, results, ss);
+    //     }
+    // }
     
     // return the result
     return results;
