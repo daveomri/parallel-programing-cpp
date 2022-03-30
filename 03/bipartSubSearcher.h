@@ -233,6 +233,21 @@ void searchBiCoSubgraphs(Graph* graph, Results* results, SearchState* searchStat
 }
 
 /**
+ * @brief Function returns sorted array of states by their total weight
+ * 
+ * @param list 
+ * @return SearchState** 
+ */
+SearchState** sortList(std::list<SearchState*>&list) {
+    SearchState**sorArr = new SearchState*[list.size()];
+    int lastIndex = 0;
+    for (auto state: list) {
+        sorArr[lastIndex++] = state;
+    }
+    return sorArr;
+}
+
+/**
  * @brief Function sets the color of nodes and then continue the search
  * 
  * @param graph 
@@ -288,28 +303,21 @@ Results* getMaxBiparSubgraph(Graph* graph) {
     std::list<SearchState*> list;
     list.push_back(new SearchState(subgraph, cNodes, 0, 0));
     bfsSearchStates(graph, results, list, 100);
+    SearchState**states = sortList(list);
 
     // for cycle for paralel cycle
-    
-
-    for (auto i: list){
-        std::cout << i->subgraph->getWeightsSum() << "\n";
-        delete i;
+    omp_set_num_threads(4);
+    int i = 0;
+   
+    #pragma omp parallel for schedule(dynamic) num_threads(4)
+    for (i = 0; i < (int)list.size(); i++ ) {
+        std::cout << i << "\n";
+        searchBiCoSubgraphs(graph, results, states[i]);
     }
-
-    // // parallel run
-    // omp_set_num_threads(6);
-    // #pragma omp parallel shared(graph, results)
-    // {
-    //     // get the results
-    //     #pragma omp single
-    //     {
-    //         int ID = omp_get_thread_num();
-    //         std::cout << "NUM THREADS: " << ID << "\n";
-    //         searchBiCoSubgraphs(graph, results, ss);
-    //     }
-    // }
     
+    // Clean the mess
+    delete states;
+
     // return the result
     return results;
 }
