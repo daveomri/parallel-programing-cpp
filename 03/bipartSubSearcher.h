@@ -17,6 +17,7 @@
 #include <list>
 
 #include "graph.h"
+#define THREADS 6
 
 /**
  * @brief Structure represents state of search
@@ -302,16 +303,16 @@ Results* getMaxBiparSubgraph(Graph* graph) {
     // BFS search to generate enough search states
     std::list<SearchState*> list;
     list.push_back(new SearchState(subgraph, cNodes, 0, 0));
-    bfsSearchStates(graph, results, list, 100);
+    bfsSearchStates(graph, results, list, 400);
     SearchState**states = sortList(list);
 
     // for cycle for paralel cycle
-    omp_set_num_threads(4);
+    omp_set_num_threads(THREADS);
     int i = 0;
    
-    #pragma omp parallel for schedule(dynamic) num_threads(4)
+    #pragma omp parallel for schedule(guided) num_threads(THREADS)
     for (i = 0; i < (int)list.size(); i++ ) {
-        std::cout << i << "\n";
+        //std::cout << i << "\n";
         searchBiCoSubgraphs(graph, results, states[i]);
     }
     
