@@ -452,16 +452,18 @@ void searchBiCoSubgraphsParallel(int &argc, char **argv, const int nodesNum) {
                 // Create the graph --------------------------------------------
                 Graph* subgraph = createSubgraph(graph, recv.cNodes);
                 SearchState* searchState = new SearchState(subgraph, recv.cNodes, recv.trashWeights, recv.lastEdgeId);
-                // Find best solution
+                // Find best solution --- possibly paralel
                 searchBiCoSubgraphs(graph, results, searchState);
                 delete subgraph;
             }
         }
 
         // return the result
-        
+        send.procId = rank;
+        if (results->results)
+            send.cNodes = results->results->cNodes;
+        MPI_Send(&send, 1, mpi_state_type, 0, tag, MPI_COMM_WORLD);
         delete graph;
-
     }
 
     MPI_Type_free(&mpi_state_type);
