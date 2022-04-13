@@ -22,7 +22,7 @@ using namespace std;
  * @param argv Input data
  * @return int 
  */
-int main(int argc, char *argv[]) {
+int main(int argc, char **argv) {
     // test if input is correct
     if (argc != 2) {
         cout << "Incorrect input, just name of graph is needed" << "\n";
@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
     }
    
 
-    Results* results = getMaxBiparSubgraph(graph);
+    Results* results = getMaxBiparSubgraph(graph, argc, argv);
 
     if (results->results != NULL) {
         cout << "RESULTS" << endl;

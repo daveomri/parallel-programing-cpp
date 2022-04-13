@@ -15,6 +15,7 @@
 #include <iomanip>
 #include <omp.h>
 #include <list>
+#include <mpi.h>
 
 #include "graph.h"
 #define THREADS 6
@@ -39,6 +40,12 @@ struct SearchState {
     }
 };
 
+struct NewState {
+    char graphName[20];
+    int trashWeights;
+    int lastEdgeId;
+    int nodesNum;
+};
 
 void setColorCombination(SearchState* searchState, Edge* edge, int cN1, int cN2);
 
@@ -180,17 +187,12 @@ void searchBiCoSubgraphs(Graph* graph, Results* results, SearchState* searchStat
 
     // no more available edge
     if (edge == NULL) {
-        
         // Is new solution better
-        #pragma omp critical 
-        {
-            if ((results->results == NULL && isConnected(subgraph) == true) || 
-                (results->results != NULL && results->results->weight <= subgraph->getWeightsSum() && isConnected(subgraph) == true)) {
-                addResult(results, subgraph, cNodes, graph->getEdgesNum());
-            
-            }
-        }
+        if ((results->results == NULL && isConnected(subgraph) == true) || 
+            (results->results != NULL && results->results->weight <= subgraph->getWeightsSum() && isConnected(subgraph) == true)) {
+            addResult(results, subgraph, cNodes, graph->getEdgesNum());
         
+        }
         delete searchState;
         return;
     }
@@ -233,6 +235,91 @@ void searchBiCoSubgraphs(Graph* graph, Results* results, SearchState* searchStat
     delete searchState;
 }
 
+
+
+
+void searchBiCoSubgraphsParallel(int &argc, char **argv, std::list<SearchState*> &searchStates) {
+    int numProcs;
+    int rank;
+    char name[80];
+    int length;
+    const int tag = 13;
+
+    // Initialize the MPI
+    MPI_Init(&argc, &argv);
+    // Number of ranks in each communicator
+    MPI_Comm_size(MPI_COMM_WORLD, &numProcs);
+    // Which proces am I - mpi_comm_world is comunicator
+    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    // Get the name of the processor
+    MPI_Get_processor_name(name, &length);
+
+    // struct creation for state
+    const int nitems = 4;
+    int blockLens[4] = {1, 1, 20, 1};
+    MPI_Datatype types[4] = {MPI_INT, MPI_INT, MPI_CHAR, MPI_INT};
+    MPI_Datatype mpi_state_type;
+    MPI_Aint offsets[4];
+
+    offsets[0] = offsetof(NewState, trashWeights);
+    offsets[1] = offsetof(NewState, lastEdgeId);
+    offsets[2] = offsetof(NewState, graphName);
+    offsets[3] = offsetof(NewState, nodesNum);
+
+    MPI_Type_create_struct(nitems, blockLens, offsets, types, &mpi_state_type);
+    MPI_Type_commit(&mpi_state_type); 
+
+
+    // The main part
+    if (rank == 0) {
+        printf("Imma master\n");
+        std::cout << "Hello, me yamo is " << name << "\n";
+        std::cout << "Argumenv" << argv[1] << "\n";
+        NewState send;
+        send.lastEdgeId = 9;
+        send.trashWeights = 0;
+        send.graphName[0] = 'A';
+        send.graphName[1] = '\0';
+
+        const int dest = 1;
+        MPI_Send(&send, 1, mpi_state_type, dest, tag, MPI_COMM_WORLD);
+    }
+    else if(rank == 1) {
+        printf("Imma slave\n");
+        MPI_Status status;
+        const int src=0;
+
+        NewState recv;
+
+        MPI_Recv(&recv, 1, mpi_state_type, src, tag, MPI_COMM_WORLD, &status);
+
+        printf("What do we have here edgeId %d and trash weights %d and %s\n", recv.lastEdgeId, recv.trashWeights, recv.graphName);
+    
+        // Create the graph
+        string graphName = argv[1];
+        Graph* graph = new Graph(graphName);
+
+        // Get results
+        Results* results = new Results;
+        results->results = NULL;
+
+        Graph* subgraph = new Graph(10);
+
+        SearchState* searchState = new SearchState(NULL, NULL, recv.trashWeights, recv.lastEdgeId);
+
+        // Find best solution
+        searchBiCoSubgraphs(graph, results, searchState);
+
+        // return the result
+
+        delete graph;
+
+    }
+
+    MPI_Type_free(&mpi_state_type);
+    MPI_Finalize();
+}
+
 /**
  * @brief Function returns sorted array of states by their total weight
  * 
@@ -269,7 +356,7 @@ void setColorCombination(SearchState* searchState, Edge* edge, int cN1, int cN2)
         searchState->subgraph->addEdge(edge);
 }
 
-Results* getMaxBiparSubgraph(Graph* graph) {
+Results* getMaxBiparSubgraph(Graph* graph, int &argc, char **argv) {
 
     if (graph == NULL) return NULL;
 
@@ -304,21 +391,24 @@ Results* getMaxBiparSubgraph(Graph* graph) {
     std::list<SearchState*> list;
     list.push_back(new SearchState(subgraph, cNodes, 0, 0));
     bfsSearchStates(graph, results, list, 400);
-    SearchState**states = sortList(list);
+    //SearchState**states = sortList(list);
 
-    // for cycle for paralel cycle
-    omp_set_num_threads(THREADS);
-    int i = 0;
+    // // for cycle for paralel cycle
+    // omp_set_num_threads(THREADS);
+    // int i = 0;
    
-    // this part will be changed to achieve the MPI, but not now, later
-    #pragma omp parallel for schedule(guided) num_threads(THREADS)
-    for (i = 0; i < (int)list.size(); i++ ) {
-        //std::cout << i << "\n";
-        searchBiCoSubgraphs(graph, results, states[i]);
-    }
+    // // this part will be changed to achieve the MPI, but not now, later
+    // #pragma omp parallel for schedule(guided) num_threads(THREADS)
+    // for (i = 0; i < (int)list.size(); i++ ) {
+    //     //std::cout << i << "\n";
+    //     searchBiCoSubgraphs(graph, results, states[i]);
+    // }
+
+    searchBiCoSubgraphsParallel(argc, argv, list);
+
     
     // Clean the mess
-    delete states;
+    //delete states;
 
     // return the result
     return results;
