@@ -39,51 +39,8 @@ int main(int argc, char **argv) {
         return 1;
     }
    
+    getMaxBiparSubgraph(graph, argc, argv);
 
-    Results* results = getMaxBiparSubgraph(graph, argc, argv);
-
-    if (results->results != NULL) {
-        cout << "RESULTS" << endl;
-        
-        ResultNode* tmpRes = results->results;
-        while (tmpRes != NULL) {
-            cout << "Weight sum: " << endl;
-            cout << tmpRes->weight << endl;
-            cout << "Node colors:" << endl;
-            for (int i = 0; i < graph->getNodesNum(); i++) {
-                cout << i << ":" << tmpRes->cNodes[i] << ", ";
-            }
-            cout << '\n';
-
-            // cout << "Edges:" << endl;
-            // for (int i = 0; i < tmpRes->graph->getNodesNum(); i++) {
-            //     for (int j = 0; j < tmpRes->graph->getNodesNum(); j++) {
-            //         cout << " | " << setw(4) << tmpRes->graph->getEdgeWeight(i, j);
-            //     }
-            //     cout << " |" << endl;
-            // }
-
-            cout << "Edges:" << "\n";
-            int mi = 0;
-            for (int i = 0; i < graph->getNodesNum(); i++) {
-                for (int j = 0; j < graph->getNodesNum(); j++) {
-                    mi = graph->getMatrixPosition(i, j);
-                    if (mi == -1) cout << "  |   " << setw(4) << 0;
-                    else cout << "  |   " << setw(4) << tmpRes->graphWeights[mi];
-                    
-                }
-                cout << "  |" << "\n";
-            }
-
-            tmpRes = tmpRes->next;
-            delete results->results;
-            results->results = tmpRes;
-
-            cout << "-----------------------------------------------------------" << '\n';
-        }
-    }
-
-    delete results;
     delete graph;
 
     return 0;

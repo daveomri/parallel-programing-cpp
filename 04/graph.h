@@ -500,7 +500,7 @@ Edge** copyEdges(Edge** edges, int sizeEdges, int sizeNew) {
  * @param cNodes colored nodes of given graph1
  * @return ResultNode* updated results
  */
-void addResult(Results* results, Graph* graph, int* cNodes, int edgesNum) {
+void addResult(Results* results, Graph* graph, int* cNodes) {
     // delete old worse solutions
     if (results->results != NULL) {
         if (results->results->weight < graph->getWeightsSum()) {
