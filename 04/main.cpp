@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
 
     getMaxBiparSubgraph(argc, argv);
 
-    printf("konec\n");
+    //printf("konec\n");
 
     return 0;
 }
