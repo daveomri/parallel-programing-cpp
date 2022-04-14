@@ -29,19 +29,9 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    string graphName = argv[1];
+    getMaxBiparSubgraph(argc, argv);
 
-
-    Graph* graph = new Graph(graphName);
-
-    if (graph->getMatrix() == NULL) {
-        delete graph;
-        return 1;
-    }
-   
-    getMaxBiparSubgraph(graph, argc, argv);
-
-    delete graph;
+    printf("konec\n");
 
     return 0;
 }
