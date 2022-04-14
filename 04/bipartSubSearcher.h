@@ -36,7 +36,7 @@ struct SearchState {
     }
     ~SearchState() {
         if (this->subgraph) delete subgraph;
-        //if (this->cNodes) delete[] cNodes;
+        if (this->cNodes) delete[] cNodes;
     }
 };
 
@@ -162,6 +162,7 @@ void searchBiCoSubgraphs(Graph* graph, Results* results, SearchState* searchStat
     int trashWeights = searchState->trashWeights;
     int lastEdgeId = searchState->lastEdgeId;
 
+    
 
     // test if should continue
     if (results->results != NULL) {
@@ -172,6 +173,8 @@ void searchBiCoSubgraphs(Graph* graph, Results* results, SearchState* searchStat
             return;
         }
     }
+
+    
 
     // get first available edge
     Edge* edge = NULL;
@@ -184,6 +187,8 @@ void searchBiCoSubgraphs(Graph* graph, Results* results, SearchState* searchStat
             break;
         }
     }
+
+    printf("here and working\n");
 
     // no more available edge
     if (edge == NULL) {
@@ -233,10 +238,11 @@ void searchBiCoSubgraphs(Graph* graph, Results* results, SearchState* searchStat
     searchBiCoSubgraphs(graph, results, new SearchState(newSubgraph, newCNodes, trashWeights, curEdgeId+1));
     // clean the mess
     delete searchState;
+    printf("imma here end");
 }
 
 
-void copyArray(int** narr, int** parr, int size) {
+void copyArray(int* narr, int* parr, int size) {
     for (int i = 0; i < size; i++) {
         narr[i] = parr[i];
     }
@@ -319,9 +325,10 @@ void searchBiCoSubgraphsParallel(int &argc, char **argv) {
         searchStates.push_back(new SearchState(subgraph, cNodes, 0, 0));
         bfsSearchStates(graph, results, searchStates, 3);
 
-        // ---------------------------------------
+        // -----------------------------------------------------------------
 
-        // cycle through the list
+
+        // cycle through the list ------------------------------------------
         MPI_Status status;
         Message recv;
 
@@ -346,7 +353,6 @@ void searchBiCoSubgraphsParallel(int &argc, char **argv) {
             // ---------------------------------------
             send.lastEdgeId = srchsSate->lastEdgeId;
             send.trashWeights = srchsSate->trashWeights;
-            //send.cNodes = srchsSate->cNodes;
             send.isEnd = 0;
             send.procId = recv.procId;
             // ---------------------------------------
@@ -354,12 +360,13 @@ void searchBiCoSubgraphsParallel(int &argc, char **argv) {
             const int dest = recv.procId;
             MPI_Send(&send, 1, mpi_state_type, dest, 6, MPI_COMM_WORLD);
             
-            printf("this is cnodes %d\n", srchsSate->cNodes[0]);
-            // MPI_Send(srchsSate->cNodes, graph->getNodesNum(), MPI_INT, dest, 9, MPI_COMM_WORLD);
-            // delete srchsSate;
+            int arrsen[graph->getNodesNum()];
+            copyArray(arrsen, srchsSate->cNodes, graph->getNodesNum());
+            MPI_Send(arrsen, graph->getNodesNum(), MPI_INT, dest, 9, MPI_COMM_WORLD);
+            delete srchsSate;
             // ---------------------------------------------------------------
         }
-        printf("endos\n\n\n\n");
+
         // end all proceses
         for (int i = 1; i < 2; i++) {
             // wait till comes the response
@@ -380,18 +387,23 @@ void searchBiCoSubgraphsParallel(int &argc, char **argv) {
 
 
         for (int i = 1; i < 2; i++) {
-            int ccNodes;
+            int arrsen[graph->getNodesNum()];
             printf("this far");
-            MPI_Recv(&ccNodes, 1, MPI_INT, i, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-            //Graph* subgraph = createSubgraph(graph, cNodes);
-            // todo multiple results - while messages keeps on comming
-            //addResult(results, subgraph, cNodes);
-            //delete subgraph;
+            MPI_Recv(arrsen, graph->getNodesNum(), MPI_INT, i, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+            printf("end of this %d\n", arrsen[0]);
+            // if it has solution
+            if (arrsen[0] != -1) {
+                printf("has solution\n");
+                Graph* subgraph = createSubgraph(graph, arrsen);
+                // todo multiple results - while messages keeps on comming
+                addResult(results, subgraph, arrsen);
+                delete subgraph;
+            }
         }
 
         // print results here
         printf("here and done\n");
-        if (false) { //results->results != NULL
+        if (results->results != NULL) {
             std::cout << "RESULTS" << std::endl;
             
             ResultNode* tmpRes = results->results;
@@ -439,6 +451,7 @@ void searchBiCoSubgraphsParallel(int &argc, char **argv) {
         // Create for each process-----------
         std::string graphName = argv[1];
         Graph* graph = new Graph(graphName);
+        graph->setEdges(createSorEdgesLL(graph));
         // Get results
         Results* results = new Results;
         results->results = NULL;
@@ -466,40 +479,40 @@ void searchBiCoSubgraphsParallel(int &argc, char **argv) {
                 END = true;
             }
             else {
-                // int* ccNodes;
-                // MPI_Recv(ccNodes, graph->getNodesNum(), MPI_INT, 0, 9, MPI_COMM_WORLD, &status);
-                // printf("this is cnodes slave %d\n", ccNodes[0]);
-                // printf("here\n");
+                int arrsen[graph->getNodesNum()];
+                MPI_Recv(arrsen, graph->getNodesNum(), MPI_INT, 0, 9, MPI_COMM_WORLD, &status);
 
+                
+                // printf("here\n");
+                int *ccNodes = new int[graph->getNodesNum()];
+                copyArray(ccNodes, arrsen, graph->getNodesNum());
                 // printf("just received slave data %d %d %d %d\n", recv.isEnd, recv.lastEdgeId, recv.procId, recv.trashWeights);
                 // // Create the graph --------------------------------------------
                 // printf("There could be error\n");
-                // Graph* subgraph = createSubgraph(graph, ccNodes);
+                Graph* subgraph = createSubgraph(graph, ccNodes);
                 // printf("yup there it is\n");
-                // SearchState* searchState = new SearchState(subgraph, ccNodes, recv.trashWeights, recv.lastEdgeId);
+                SearchState* searchState = new SearchState(subgraph, ccNodes, recv.trashWeights, recv.lastEdgeId);
                 // printf("Nope it's here\n");
-                // // Find best solution --- possibly paralel
-                // //searchBiCoSubgraphs(graph, results, searchState);
-                // delete subgraph;
+                // Find best solution --- possibly paralel
+                printf("the search\n");
+                
+                searchBiCoSubgraphs(graph, results, searchState);
             }
         }
 
         // return the result
        
-        // int* cNodes;
-        // if (results->results) {
-        //     printf("1\n");
-        //     cNodes = results->results->cNodes;
-        // }
-        // else {
-        //     printf("2\n");
-        //     cNodes = new int[graph->getNodesNum()];
-        //     printf("here\n");
-        //     cNodes[0] = -1;
-        // }
-        printf("yet working\n");
-        int cccNodes = 99;
-        MPI_Send(&cccNodes, 1, MPI_INT, 0, tag, MPI_COMM_WORLD);
+        int arrsen[graph->getNodesNum()];
+        if (results->results) {
+            printf("1\n");
+            copyArray(arrsen, results->results->cNodes, graph->getNodesNum());
+        }
+        else {
+            printf("2\n");
+            arrsen[0] = -1;
+        }
+        
+        MPI_Send(arrsen, graph->getNodesNum(), MPI_INT, 0, tag, MPI_COMM_WORLD);
         printf("this is bad or what\n");
         delete results;
         delete graph;
