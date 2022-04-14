@@ -281,6 +281,8 @@ void searchBiCoSubgraphsParallel(int &argc, char **argv) {
     // Get the name of the processor
     MPI_Get_processor_name(name, &length);
 
+    numProcs = 2;
+
     // struct creation for state
     const int nitems = 4;
     int blockLens[4] = {1, 1, 1, 1};
@@ -337,7 +339,7 @@ void searchBiCoSubgraphsParallel(int &argc, char **argv) {
             //printf("list size is %d \n", (int)searchStates.size());
             // choose which proces to work with
             curSlave+=1;
-            if (curSlave>= 2) {
+            if (curSlave>= numProcs) {
                 curSlave = 1;
             }
             //printf("Current slave is %d\n", curSlave);
@@ -368,7 +370,7 @@ void searchBiCoSubgraphsParallel(int &argc, char **argv) {
         }
 
         // end all proceses
-        for (int i = 1; i < 2; i++) {
+        for (int i = 1; i < numProcs; i++) {
             // wait till comes the response
             MPI_Recv(&recv, 1, mpi_state_type, i, tag, MPI_COMM_WORLD, &status);
 
@@ -386,7 +388,7 @@ void searchBiCoSubgraphsParallel(int &argc, char **argv) {
         // get results from processes
 
 
-        for (int i = 1; i < 2; i++) {
+        for (int i = 1; i < numProcs; i++) {
             int arrsen[graph->getNodesNum()];
             //printf("this far");
             MPI_Recv(arrsen, graph->getNodesNum(), MPI_INT, i, tag, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
